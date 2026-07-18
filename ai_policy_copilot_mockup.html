@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Policy Copilot — concept mockup</title>
+<style>
+  :root{
+    --navy:#0f1f3d; --navy-2:#16294f; --teal:#0f766e; --teal-light:#e6f5f3;
+    --ink:#1a2233; --muted:#5c6478; --line:#e2e5ec; --bg:#f4f5f8; --card:#ffffff;
+    --amber:#b45309; --amber-bg:#fef3e2; --red:#b3261e; --red-bg:#fdeceb; --green:#166534; --green-bg:#eaf6ec;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  .topbar{background:var(--navy);color:#fff;padding:18px 28px;}
+  .topbar h1{margin:0 0 4px;font-size:20px;font-weight:700;}
+  .topbar p{margin:0;font-size:13px;color:#c9d2e6;}
+  .badge{display:inline-block;background:#28407a;color:#dce6ff;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:2px;}
+  .stagebar{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--line);padding:0 28px;}
+  .stage{padding:12px 18px;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;position:relative;cursor:pointer;}
+  .stage:hover{color:var(--navy);}
+  .stage.active{color:var(--navy);font-weight:600;border-bottom-color:var(--teal);}
+  .stage .num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--line);color:var(--muted);font-size:10px;margin-right:6px;}
+  .stage.active .num,.stage.done .num{background:var(--teal);color:#fff;}
+  .layout{display:flex;min-height:640px;}
+  .chatpane{width:360px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;}
+  .chatlog{flex:1;padding:18px;overflow-y:auto;max-height:560px;}
+  .msg{margin-bottom:14px;font-size:13.5px;line-height:1.5;}
+  .msg.user{text-align:right;}
+  .msg.user .bubble{background:var(--navy);color:#fff;display:inline-block;padding:8px 12px;border-radius:12px 12px 2px 12px;max-width:85%;text-align:left;}
+  .msg.agent .bubble{background:var(--teal-light);color:var(--ink);display:inline-block;padding:8px 12px;border-radius:12px 12px 12px 2px;max-width:90%;}
+  .msg.agent .who{font-size:11px;color:var(--teal);font-weight:600;margin-bottom:3px;}
+  .chips{padding:0 18px 16px;display:flex;flex-direction:column;gap:8px;}
+  .chip{border:1px solid var(--line);background:#fff;color:var(--navy);font-size:13px;padding:9px 12px;border-radius:10px;text-align:left;cursor:pointer;transition:background .15s;}
+  .chip:hover{background:var(--teal-light);border-color:var(--teal);}
+  .chip:disabled{opacity:.4;cursor:default;}
+  .canvas-hint{font-size:11px;color:var(--teal);font-weight:600;margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,128,128,.15);}
+  .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);font-size:11px;border-radius:6px;padding:4px 10px;cursor:pointer;margin:0 18px 10px;align-self:flex-start;}
+  .resetbtn:hover{border-color:var(--teal);color:var(--teal);}
+  .msg.agent .bubble ol,.msg.agent .bubble ul{margin:6px 0 0 16px;padding:0;}
+  .msg.agent .bubble li{margin:3px 0;font-size:13px;}
+  .msg.agent .bubble p{margin:4px 0;}
+  .inputrow{display:flex;gap:8px;padding:14px 18px;border-top:1px solid var(--line);}
+  .inputrow input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:13px;}
+  .inputrow button{border:none;background:var(--navy);color:#fff;border-radius:8px;padding:0 14px;font-size:13px;cursor:pointer;}
+  .canvas{flex:1;padding:26px 32px;overflow-y:auto;max-height:640px;}
+  .panel{display:none;}
+  .panel.visible{display:block;animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .empty{color:var(--muted);font-size:14px;padding-top:60px;text-align:center;}
+  h2.panel-title{font-size:17px;margin:0 0 4px;color:var(--navy);}
+  p.panel-sub{font-size:13px;color:var(--muted);margin:0 0 20px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
+  .snapshot-hero{display:flex;gap:14px;align-items:flex-start;}
+  .stat{background:var(--bg);border-radius:10px;padding:10px 14px;text-align:center;min-width:70px;}
+  .stat .n{font-size:20px;font-weight:700;}
+  .stat .l{font-size:11px;color:var(--muted);}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;}
+  .tag.no{background:var(--red-bg);color:var(--red);}
+  .tag.planned{background:var(--amber-bg);color:var(--amber);}
+  .tag.progress{background:#e4ecfb;color:#1d4ed8;}
+  .tag.yes{background:var(--green-bg);color:var(--green);}
+  .caselink{display:block;font-size:12px;color:var(--teal);text-decoration:none;margin-top:4px;}
+  .caselink:hover{text-decoration:underline;}
+  .urlfallback{font-size:11px;color:var(--muted);word-break:break-all;user-select:all;margin-top:2px;cursor:text;}
+  .seemore{background:none;border:none;color:var(--teal);font-size:13px;cursor:pointer;padding:0;margin-top:8px;font-weight:600;}
+  .actionrow{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .actionrow:last-child{border-bottom:none;}
+  .actionrow:hover{background:var(--bg);}
+  .actionrow .tf{font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;}
+  .actionrow .tf.now{background:var(--red-bg);color:var(--red);}
+  .actionrow .tf.next{background:var(--amber-bg);color:var(--amber);}
+  .actionrow .tf.later{background:var(--bg);color:var(--muted);border:1px solid var(--line);}
+  .actionrow .at{font-size:13px;font-weight:500;}
+  .actionrow .ar{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .actionrow .chev{color:var(--muted);font-size:16px;flex-shrink:0;}
+  .morecountries{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .morecountries.open{display:block;}
+  .mini-row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;color:var(--ink);}
+  .mini-row span.c{color:var(--muted);}
+  .regions{display:flex;gap:16px;}
+  .region{flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;min-height:220px;}
+  .region h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 12px;}
+  .node{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer;border:1px solid transparent;font-size:13px;}
+  .node:hover{border-color:var(--teal);}
+  .node.home{background:var(--navy);color:#fff;font-weight:600;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+  .node.home .dot{background:#5eead4;}
+  .node .count{margin-left:auto;font-size:11px;color:var(--muted);}
+  .node.home .count{color:#c9d2e6;}
+  .detail{margin-top:16px;padding:14px 16px;background:var(--teal-light);border-radius:10px;font-size:13px;display:none;}
+  .detail.show{display:block;}
+  .roadmap-item{display:flex;gap:14px;margin-bottom:14px;}
+  .rank{width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .roadmap-body{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;}
+  .roadmap-body h3{margin:0 0 4px;font-size:14.5px;}
+  .why{font-size:12.5px;color:var(--muted);margin:6px 0 10px;font-style:italic;}
+  .sourcepill{display:inline-block;font-size:11px;background:var(--bg);border:1px solid var(--line);color:var(--muted);padding:2px 8px;border-radius:12px;margin:2px 4px 0 0;cursor:pointer;}
+  .sourcepill:hover{background:var(--teal-light);border-color:var(--teal);color:var(--navy);}
+  .sourcepill::after{content:" ›";font-size:11px;opacity:.6;}
+  .evidence{display:none;margin-top:8px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--teal);border-radius:0 8px 8px 0;}
+  .evidence.show{display:block;}
+  .evtag{display:inline-block;font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;}
+  .evtext{font-size:13px;font-style:italic;margin:0 0 6px;color:var(--ink);line-height:1.5;}
+  .evfrom{font-size:11px;color:var(--muted);margin:0;}
+
+  .filterbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;}
+  .filterbar select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px;background:#fff;color:var(--ink);}
+  .landmass{position:relative;border-radius:38% 62% 60% 40% / 48% 42% 58% 52%;padding:20px 18px;min-height:230px;
+    background:radial-gradient(circle, #d8dee8 1px, transparent 1px) 0 0/14px 14px, #fbfcfe;border:1px solid var(--line);}
+  .landmass h4{background:#fff;display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.03em;margin:0 0 12px;}
+  .node.dim{opacity:.28;}
+  .legend{display:flex;gap:18px;align-items:center;font-size:12px;color:var(--muted);margin-top:14px;flex-wrap:wrap;}
+  .legend .dot{display:inline-block;margin-right:5px;}
+  .kanban{display:flex;gap:14px;align-items:flex-start;}
+  .kcol{flex:1;background:var(--bg);border-radius:12px;padding:12px;min-height:120px;}
+  .kcol h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 10px;display:flex;justify-content:space-between;}
+  .kcol h4 .n{background:var(--line);color:var(--ink);border-radius:10px;padding:0 7px;font-size:11px;}
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:10px;cursor:pointer;}
+  .kcard h5{margin:6px 0 0;font-size:13px;}
+  .kcard .why{margin:5px 0 0;font-size:12px;color:var(--muted);}
+  .kcard-body{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);}
+  .kcard-body.open{display:block;}
+  .draftbtn{margin-top:8px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:12px;padding:6px 10px;cursor:pointer;}
+  .rec-block{margin-bottom:12px;}
+  .rec-label{display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;}
+  .rec-text{font-size:12.5px;margin:0;line-height:1.5;color:var(--ink);}
+  .evidence-pills{line-height:1.9;}
+  .claims-list{margin:0;padding-left:16px;font-size:12px;color:var(--ink);line-height:1.5;}
+  .claims-list li{margin-bottom:5px;}
+  .statuspill{font-size:10px;padding:1px 7px;border-radius:8px;white-space:nowrap;}
+  .statuspill.drafted{background:var(--green-bg);color:var(--green);}
+  .statuspill.notstarted{background:var(--bg);color:var(--muted);border:1px solid var(--line);}
+  .downloadbtn{border:1px solid var(--line);background:#fff;border-radius:7px;font-size:12px;padding:6px 10px;cursor:pointer;color:var(--navy);}
+  .sources-used{margin-top:10px;font-size:12px;color:var(--muted);}
+  .emptystub{padding:34px 20px;text-align:center;color:var(--muted);font-size:13px;background:var(--bg);border-radius:10px;}
+  .emptystub button{margin-top:12px;}
+  .secblock{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;}
+  .sechead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .sechead h3{margin:0;font-size:15px;}
+  .toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .secblock textarea{width:100%;min-height:160px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13.5px;line-height:1.6;font-family:inherit;resize:vertical;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>AI Policy Copilot <span class="badge">concept mockup</span></h1>
+  <p>Conversation-driven prototype. Scripted tabs show governance and institutions (hardcoded). The "Analyze live from the pipeline" chips call a real RAG backend seeded with Portugal's research, investment, and commercialisation pillar.</p>
+</div>
+
+<div class="stagebar" id="stagebar">
+  <div class="stage active" data-stage="0"><span class="num">1</span>Snapshot</div>
+  <div class="stage" data-stage="1"><span class="num">2</span>Landscape</div>
+  <div class="stage" data-stage="2"><span class="num">3</span>Roadmap</div>
+  <div class="stage" data-stage="3"><span class="num">4</span>Draft</div>
+</div>
+
+<div class="layout">
+  <div class="chatpane">
+    <div class="chatlog" id="chatlog">
+      <div class="msg agent">
+        <div class="who">Copilot</div>
+        <div class="bubble">Hi, I'm set up for Portugal, governance and institutions. What do you want to look at first?</div>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <button class="resetbtn" onclick="resetSession()">↺ Reset to Portugal case</button>
+    <div class="inputrow">
+      <input type="text" placeholder="Ask about a policy priority..." id="freeInput" onkeydown="if(event.key==='Enter')sendFree()">
+      <button onclick="sendFree()">Send</button>
+    </div>
+  </div>
+
+  <div class="canvas" id="canvas">
+    <div class="empty" id="emptyState" style="display:none;">Choose a suggestion in the chat to get started →</div>
+
+    <div class="panel visible" id="panel-0">
+      <h2 class="panel-title">Portugal at a glance — governance and institutions</h2>
+      <p class="panel-sub">Based on your survey answers, compared against one closely relevant action plan.</p>
+      <div class="card">
+        <div class="snapshot-hero">
+          <div class="stat"><div class="n">3</div><div class="l">gaps (no)</div></div>
+          <div class="stat"><div class="n">2</div><div class="l">planned</div></div>
+          <div class="stat"><div class="n">0</div><div class="l">implemented</div></div>
+          <div style="flex:1;font-size:13px;color:var(--muted);padding-top:6px;">
+            Portugal has begun standing up a dedicated AI unit and stakeholder consultation, but strategy funding, delivery mechanisms and privacy/data governance frameworks are not yet in place.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <strong style="font-size:13.5px;">America's AI Action Plan</strong>
+        <span class="tag progress" style="margin-left:8px;">United States · 2025</span>
+        <p style="font-size:13px;color:var(--muted);margin:8px 0 0;">The closest matching precedent for Portugal's implementation-mechanisms gap: a published, milestone-driven action plan with named delivery owners.</p>
+        <a class="caselink" href="https://oecd.ai/en/air/f222e887-ca43-79bb-5972-e4360a30695c" onclick="return openCase(this.href)">View on oecd.ai →</a>
+        <div class="urlfallback">https://oecd.ai/en/air/f222e887-ca43-79bb-5972-e4360a30695c</div>
+        <button class="seemore" onclick="toggleMore()">See more countries ▾</button>
+        <div class="morecountries" id="moreCountries">
+          <div class="mini-row"><span>National AI Strategy 2024</span><span class="c">Spain · 2024</span></div>
+          <div class="mini-row"><span>AI implementation plan 2024–</span><span class="c">Austria · 2024</span></div>
+          <div class="mini-row"><span>National AI Strategy</span><span class="c">United Kingdom · 2021</span></div>
+          <div class="mini-row"><span>Canadian Sovereign AI Compute Strategy</span><span class="c">Canada · 2024</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <strong style="font-size:13.5px;">Recommended actions</strong>
+        <p style="font-size:12px;color:var(--muted);margin:4px 0 10px;">Your three open gaps, ranked. Click one for the full recommendation, evidence, and claims.</p>
+        <div id="actionsList"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-1">
+      <h2 class="panel-title">Global policy landscape</h2>
+      <p class="panel-sub">9 countries and multilateral bodies, 12 case studies referenced for this pillar. Filter by topic, click a node for detail.</p>
+      <div class="filterbar">
+        <label for="topicFilter" style="color:var(--muted);">Filter by topic</label>
+        <select id="topicFilter" onchange="filterMap(this.value)">
+          <option value="all">All topics</option>
+          <option value="implementation">Implementation mechanisms</option>
+          <option value="budget">Budget and financing</option>
+          <option value="privacy">Privacy and data governance</option>
+          <option value="stakeholder">Stakeholder engagement</option>
+          <option value="aiunit">AI unit and mandate</option>
+        </select>
+      </div>
+      <div class="regions">
+        <div class="landmass">
+          <h4>Americas</h4>
+          <div class="node" data-topic="aiunit,implementation" onclick="showDetail('us')"><span class="dot"></span>United States<span class="count">1</span></div>
+          <div class="node" data-topic="budget" onclick="showDetail('canada')"><span class="dot"></span>Canada<span class="count">1</span></div>
+        </div>
+        <div class="landmass">
+          <h4>Europe</h4>
+          <div class="node home" data-topic="all" onclick="showDetail('portugal')"><span class="dot"></span>Portugal (you)<span class="count">5 assessed</span></div>
+          <div class="node" data-topic="aiunit,implementation" onclick="showDetail('spain')"><span class="dot"></span>Spain<span class="count">1</span></div>
+          <div class="node" data-topic="aiunit,privacy" onclick="showDetail('uk')"><span class="dot"></span>United Kingdom<span class="count">2</span></div>
+          <div class="node" data-topic="implementation,stakeholder" onclick="showDetail('austria')"><span class="dot"></span>Austria<span class="count">2</span></div>
+          <div class="node" data-topic="budget" onclick="showDetail('france')"><span class="dot"></span>France<span class="count">1</span></div>
+          <div class="node" data-topic="budget" onclick="showDetail('malta')"><span class="dot"></span>Malta<span class="count">1</span></div>
+        </div>
+        <div class="landmass">
+          <h4>Middle East &amp; multilateral</h4>
+          <div class="node" data-topic="stakeholder" onclick="showDetail('israel')"><span class="dot"></span>Israel<span class="count">1</span></div>
+          <div class="node" data-topic="privacy,stakeholder" onclick="showDetail('oecd')"><span class="dot"></span>OECD / GPAI<span class="count">3</span></div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--teal);"></span>Precedent country</span>
+        <span><span class="dot" style="background:var(--navy);"></span>Portugal (assessed)</span>
+        <span>Grouped by region, not exact geography</span>
+      </div>
+      <div class="detail" id="mapDetail"></div>
+    </div>
+
+    <div class="panel" id="panel-2">
+      <h2 class="panel-title">Recommended roadmap</h2>
+      <p class="panel-sub">Each card is one recommendation: what to do, the evidence behind it, and the claims you could use to defend it. Rendered from a single data model, not hand-written per card.</p>
+      <div class="kanban" id="kanban"></div>
+    </div>
+
+    <div class="panel" id="panel-3">
+      <h2 class="panel-title">Draft: governance and institutions strategy</h2>
+      <p class="panel-sub">All five sections load together, each editable on its own. Two aren't started yet, shown honestly rather than faked. Click a source pill under a section to see the extracted passage behind it.</p>
+
+      <div class="secblock" id="sec-impl">
+        <div class="sechead"><h3>Implementation mechanisms</h3><span class="statuspill drafted">drafted</span></div>
+        <div class="toolbar">
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('impl','concise')">More concise</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('impl','portugal')">Portugal framing</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('impl','original')">Reset</button>
+          <button class="downloadbtn" onclick="downloadSection('impl')">Download .md</button>
+        </div>
+        <textarea id="draft-impl"></textarea>
+        <div class="sources-used">Sources used: <span class="sourcepill" onclick="toggleEvidence('us_actionplan','ev-d-impl')">America's AI Action Plan · US 2025</span><span class="sourcepill" onclick="toggleEvidence('spain_strategy2024','ev-d-impl')">National AI Strategy 2024 · Spain</span><span class="sourcepill" onclick="toggleEvidence('austria_implplan2024','ev-d-impl')">AI implementation plan · Austria 2024</span></div>
+        <div class="evidence" id="ev-d-impl"></div>
+      </div>
+
+      <div class="secblock" id="sec-budget">
+        <div class="sechead"><h3>Budget and financing</h3><span class="statuspill drafted">drafted</span></div>
+        <div class="toolbar">
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('budget','concise')">More concise</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('budget','portugal')">Portugal framing</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('budget','original')">Reset</button>
+          <button class="downloadbtn" onclick="downloadSection('budget')">Download .md</button>
+        </div>
+        <textarea id="draft-budget"></textarea>
+        <div class="sources-used">Sources used: <span class="sourcepill" onclick="toggleEvidence('canada_computestrategy','ev-d-budget')">Sovereign AI Compute Strategy · Canada 2024</span><span class="sourcepill" onclick="toggleEvidence('malta_launchpad','ev-d-budget')">Ultimate AI Launchpad · Malta 2019</span><span class="sourcepill" onclick="toggleEvidence('france_strategy2018','ev-d-budget')">National Strategy on AI · France 2018</span></div>
+        <div class="evidence" id="ev-d-budget"></div>
+      </div>
+
+      <div class="secblock" id="sec-privacy">
+        <div class="sechead"><h3>Privacy and data governance</h3><span class="statuspill drafted">drafted</span></div>
+        <div class="toolbar">
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('privacy','concise')">More concise</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('privacy','portugal')">Portugal framing</button>
+          <button class="chip" style="width:auto;margin:0;" onclick="setDraft('privacy','original')">Reset</button>
+          <button class="downloadbtn" onclick="downloadSection('privacy')">Download .md</button>
+        </div>
+        <textarea id="draft-privacy"></textarea>
+        <div class="sources-used">Sources used: <span class="sourcepill" onclick="toggleEvidence('oecd_dataprivacy2024','ev-d-privacy')">AI, data governance and privacy · OECD/GPAI 2024</span><span class="sourcepill" onclick="toggleEvidence('uk_dataguidance2020','ev-d-privacy')">Guidance on AI and Data Protection · UK 2020</span><span class="sourcepill" onclick="toggleEvidence('oecd_datamapping2025','ev-d-privacy')">Mapping data collection mechanisms · OECD/GPAI 2025</span></div>
+        <div class="evidence" id="ev-d-privacy"></div>
+      </div>
+
+      <div class="secblock" id="sec-vision">
+        <div class="sechead"><h3>Vision and objectives</h3><span class="statuspill notstarted">not started</span></div>
+        <div class="emptystub">
+          Not started yet. This section will state Portugal's overall AI ambition and link it to the gaps identified in this assessment.
+          <br><button class="chip" style="width:auto;display:inline-block;" onclick="startStub('vision')">Draft a first pass</button>
+        </div>
+      </div>
+
+      <div class="secblock" id="sec-monitor">
+        <div class="sechead"><h3>Monitoring and evaluation</h3><span class="statuspill notstarted">not started</span></div>
+        <div class="emptystub">
+          Not started yet. This section will define how progress against the roadmap gets tracked and reported once mechanisms are in place.
+          <br><button class="chip" style="width:auto;display:inline-block;" onclick="startStub('monitor')">Draft a first pass</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+ * Data model, part 1: documents.
+ * One normalized record per source policy document. This is the shape
+ * a real pipeline would need to emit per retrieved chunk: enough to cite
+ * it (title, country, year, url) and enough to ground a claim (excerpt).
+ * "excerpt" here is a mocked stand-in for a real extracted passage.
+ */
+const documents = {
+  uk_strategy2021: {title:'National AI Strategy', country:'United Kingdom', year:2021, url:'https://oecd.ai/en/air/68367027-29f5-bab0-0c07-46587149f516',
+    excerpt:'The strategy establishes an Office for AI as the coordinating body, tasked with tracking delivery against a published action plan and reporting to a ministerial oversight committee.'},
+  us_actionplan: {title:"America's AI Action Plan", country:'United States', year:2025, url:'https://oecd.ai/en/air/f222e887-ca43-79bb-5972-e4360a30695c',
+    excerpt:'The action plan assigns named federal agencies to each priority action and sets a recurring review cycle to track delivery against milestones.'},
+  spain_strategy2024: {title:'National AI Strategy 2024', country:'Spain', year:2024, url:'https://oecd.ai/en/air/590c7a5f-870c-6dab-99f6-3460e6d06585',
+    excerpt:"Spain's strategy creates a dedicated AI unit within the digitalisation ministry, with a mandate to coordinate cross-ministerial AI initiatives and report annually."},
+  israel_forum2025: {title:'National multi-stakeholder consultation forum for AI policy and regulation', country:'Israel', year:2025, url:'https://oecd.ai/en/air/bad1d7ac-5907-4369-21b4-9149f1480705',
+    excerpt:'The forum convenes industry, academia and civil society representatives on a recurring basis, with published minutes and a formal government right of response.'},
+  oecd_steeringfuture: {title:"Steering AI's future: strategies for anticipatory governance", country:'OECD / GPAI', year:2025, url:'https://oecd.ai/en/air/b63b3e8b-fef3-4c41-3bd6-795da3747660',
+    excerpt:'The report recommends standing multi-stakeholder advisory bodies with an explicit mandate to flag emerging risks before they reach the legislative agenda.'},
+  austria_stakeholderforum: {title:'AI Stakeholder Forum', country:'Austria', year:2024, url:'https://oecd.ai/en/air/3336bd8a-0cf4-ce11-afff-3a44ce94791e',
+    excerpt:"The forum brings together organisations across sectors on a recurring basis, with working groups feeding directly into the ministry's implementation planning."},
+  austria_implplan2024: {title:'AI implementation plan for 2024 and following years', country:'Austria', year:2024, url:'https://oecd.ai/en/air/c94a81e0-b2a0-1d96-cc17-b7fc1a0d8660',
+    excerpt:'The plan sequences delivery into multi-year phases, each with published milestones and an interim public review before the next phase begins.'},
+  canada_computestrategy: {title:'Canadian Sovereign AI Compute Strategy', country:'Canada', year:2024, url:'https://oecd.ai/en/air/91d52a55-b67a-f89d-0376-3f741057d48b',
+    excerpt:'The strategy commits multi-year public funding to sovereign compute capacity, released in tranches tied to procurement milestones.'},
+  malta_launchpad: {title:'The Ultimate AI Launchpad: Malta 2030', country:'Malta', year:2019, url:'https://oecd.ai/en/air/77a885e8-54dc-ed66-31e3-d4a351bba789',
+    excerpt:'The strategy pairs its vision statement with a costed roadmap, allocating a specific budget line to each of its pillars through the strategy period.'},
+  france_strategy2018: {title:'National Strategy on AI', country:'France', year:2018, url:'',
+    excerpt:'The strategy specifies separate funding streams for research, talent and compute infrastructure rather than a single undifferentiated budget line.'},
+  oecd_dataprivacy2024: {title:'AI, data governance and privacy: synergies and areas of international co-operation', country:'OECD / GPAI', year:2024, url:'https://oecd.ai/en/air/317f0bbe-78ca-daf1-58d7-3b77b2b971f7',
+    excerpt:'The synthesis recommends that data governance frameworks explicitly address AI-specific risks, such as training data provenance and purpose limitation for repurposed datasets.'},
+  uk_dataguidance2020: {title:'Guidance on AI and Data Protection', country:'United Kingdom', year:2020, url:'https://oecd.ai/en/air/affcc8f6-207a-ef14-d61a-5ec5c2ccf957',
+    excerpt:'The guidance clarifies how existing data protection law applies to AI systems through sector-specific notes, rather than introducing new primary legislation.'},
+  oecd_datamapping2025: {title:'Mapping relevant data collection mechanisms for AI training', country:'OECD / GPAI', year:2025, url:'https://oecd.ai/en/air/f6d84a32-7868-4da0-43b1-fe4022a2832d',
+    excerpt:'The mapping identifies gaps in existing data collection mechanisms for AI training, particularly for lower-resource languages, and recommends a governance layer to track dataset provenance.'}
+};
+
+// Groups documents by country for the Landscape map. References documents by id
+// rather than repeating title/year/url a second time.
+const countryDocs = {
+  us: {label:'United States', docs:['us_actionplan']},
+  spain: {label:'Spain', docs:['spain_strategy2024']},
+  austria: {label:'Austria', docs:['austria_implplan2024','austria_stakeholderforum']},
+  canada: {label:'Canada', docs:['canada_computestrategy']},
+  malta: {label:'Malta', docs:['malta_launchpad']},
+  france: {label:'France', docs:['france_strategy2018']},
+  uk: {label:'United Kingdom', docs:['uk_strategy2021','uk_dataguidance2020']},
+  israel: {label:'Israel', docs:['israel_forum2025']},
+  oecd: {label:'OECD / GPAI', docs:['oecd_dataprivacy2024','oecd_datamapping2025','oecd_steeringfuture']},
+  portugal: {label:'Portugal (you)', docs:[]}
+};
+
+/*
+ * Data model, part 2: recommendations.
+ * One record per assessed policy priority. This is the object a real
+ * pipeline needs to produce: the action to recommend, the claims that
+ * justify it, and which documents ground those claims.
+ */
+const recommendations = [
+  {
+    id: 'aiunit', title: 'AI unit and mandate', status: 'planned', timeframe: null,
+    why: 'Already underway, keep resourcing it.',
+    recommendation: "Keep building the AI unit's mandate: publish its terms of reference, add a public milestone tracker, and set a direct reporting line to leadership so its authority is visible, not just declared.",
+    relatedClaims: [
+      'All three comparable strategies reviewed here (UK 2021, US 2025, Spain 2024) pair the unit with a public accountability mechanism, not just an internal mandate.',
+      "Portugal has done the hardest part already, standing up the unit; the remaining risk is that it operates without visible reporting."
+    ],
+    evidenceIds: ['uk_strategy2021','us_actionplan','spain_strategy2024']
+  },
+  {
+    id: 'stakeholder', title: 'Stakeholder participation', status: 'planned', timeframe: null,
+    why: 'Consultation mechanism is forming, keep it moving.',
+    recommendation: 'Formalize the consultation forum into a recurring, minuted process with a named channel for government response, rather than an ad hoc mechanism.',
+    relatedClaims: [
+      "Israel's and Austria's forums both meet on a fixed cadence with published minutes, which is what turns consultation into an accountability mechanism rather than a one-off event.",
+      "OECD/GPAI's anticipatory-governance guidance treats a standing advisory mandate as a prerequisite for catching risks before they reach legislation."
+    ],
+    evidenceIds: ['israel_forum2025','oecd_steeringfuture','austria_stakeholderforum']
+  },
+  {
+    id: 'impl', title: 'Implementation mechanisms', status: 'gap', timeframe: 'now',
+    why: "Unblocks the AI unit you've already planned.",
+    recommendation: 'Establish an inter-ministerial AI delivery unit with a public milestone tracker and an annual report, sequenced in two-year phases with interim reviews.',
+    relatedClaims: [
+      'Every implementation-mechanisms precedent reviewed here (US, Spain, Austria) pairs the strategy document with a named, resourced delivery body rather than leaving execution to individual ministries.',
+      "Without this, Portugal's planned AI unit has a mandate but no operational vehicle to act through."
+    ],
+    evidenceIds: ['us_actionplan','spain_strategy2024','austria_implplan2024']
+  },
+  {
+    id: 'budget', title: 'Budget and financing', status: 'gap', timeframe: 'next',
+    why: 'Needs a costed allocation once mechanisms exist.',
+    recommendation: "Commission a costing exercise across the strategy's full implementation period and secure a multi-year budget allocation, not an annual line item.",
+    relatedClaims: [
+      "Canada's, Malta's, and France's strategies all pair the vision document with an explicit financing chapter rather than negotiating funding ministry by ministry.",
+      "A costed strategy is what separates an aspirational document from a delivery plan; Portugal's strategy currently has neither."
+    ],
+    evidenceIds: ['canada_computestrategy','malta_launchpad','france_strategy2018']
+  },
+  {
+    id: 'privacy', title: 'Privacy and data governance', status: 'gap', timeframe: 'later',
+    why: 'Cross-cutting, can proceed alongside the two above.',
+    recommendation: 'Review the existing data protection framework against AI-specific risks and issue sector guidance rather than new primary legislation, where current law already applies.',
+    relatedClaims: [
+      "The UK's 2020 approach shows guidance notes can cover most AI-specific risk without a new legislative process, which is faster than drafting new law.",
+      'This is cross-cutting rather than blocking: it can proceed in parallel with the implementation-mechanisms and budget work above.'
+    ],
+    evidenceIds: ['oecd_dataprivacy2024','uk_dataguidance2020','oecd_datamapping2025']
+  }
+];
+
+const sectionData = {
+  impl: {status:'drafted', title:'Implementation mechanisms',
+    sources:["America's AI Action Plan · US 2025","National AI Strategy 2024 · Spain","AI implementation plan · Austria 2024"],
+    variants:{
+      original: `Implementation mechanisms for Portugal's national AI strategy
+
+Establish an inter-ministerial AI delivery unit reporting to the lead ministry, modeled on Spain's 2024 National AI Strategy governance structure. The unit should coordinate cross-agency AI initiatives, track implementation against published milestones, and report annually.
+
+Drawing on Austria's phased 2024 implementation plan, sequence rollout in two-year cycles with public interim reviews, similar in spirit to the milestone structure used in America's AI Action Plan (2025).`,
+      concise: `Implementation mechanisms
+
+Stand up an inter-ministerial delivery unit (Spain 2024 model) with a public milestone tracker and annual report. Roll out in two-year cycles with interim reviews (Austria 2024, US 2025 precedent).`,
+      portugal: `Implementation mechanisms for Portugal's national AI strategy
+
+Portugal has already begun establishing its AI unit and stakeholder forum, so this section should give that unit teeth: a published milestone tracker, a mandate to coordinate across ministries, and an annual report to parliament.
+
+Model the delivery cadence on Spain's 2024 strategy and Austria's phased 2024 plan, both of which paired a strategy document with a named, resourced delivery body rather than leaving implementation to individual ministries.`
+    }
+  },
+  budget: {status:'drafted', title:'Budget and financing',
+    sources:['Sovereign AI Compute Strategy · Canada 2024','Ultimate AI Launchpad · Malta 2019','National Strategy on AI · France 2018'],
+    variants:{
+      original: `Budget and financing for Portugal's national AI strategy
+
+Commission a costing exercise across the strategy's implementation period, covering the AI unit's operating budget, compute subsidy commitments, and R&D calls. Secure a multi-year allocation rather than a single annual budget line, following the multi-year compute investment model used in Canada's 2024 Sovereign AI Compute Strategy.
+
+Malta's Ultimate AI Launchpad (2030) and France's 2018 National Strategy on AI both paired their strategy documents with an explicit financing chapter rather than leaving funding to be negotiated ministry by ministry; Portugal's budget chapter should do the same.`,
+      concise: `Budget and financing
+
+Cost the strategy across its full implementation period and secure a multi-year allocation, not an annual line item (Canada 2024 model). Pair the strategy with an explicit financing chapter, as Malta (2019) and France (2018) both did.`,
+      portugal: `Budget and financing for Portugal's national AI strategy
+
+Portugal's strategy currently has no dedicated budget line, so this chapter should start there: a costed, multi-year allocation covering the AI unit, compute subsidies, and R&D calls, reviewed annually alongside the unit's own milestone tracker.
+
+Canada's 2024 Sovereign AI Compute Strategy and Malta's Ultimate AI Launchpad both show what a costed strategy document looks like in practice; Portugal's chapter should name figures, not just intentions.`
+    }
+  },
+  privacy: {status:'drafted', title:'Privacy and data governance',
+    sources:['AI, data governance and privacy · OECD/GPAI 2024','Guidance on AI and Data Protection · UK 2020','Mapping data collection mechanisms · OECD/GPAI 2025'],
+    variants:{
+      original: `Privacy and data governance frameworks
+
+Review Portugal's existing data protection framework against AI-specific risks: training data provenance, purpose limitation for repurposed datasets, and accountability for automated decisions. The OECD/GPAI synthesis on AI, data governance and privacy (2024) is a useful checklist for what a review should cover.
+
+Follow the UK's approach in its 2020 Guidance on AI and Data Protection by issuing sector guidance rather than new primary legislation where existing law already applies, and draw on OECD/GPAI's 2025 mapping of data collection mechanisms to identify where Portugal's AI-ready datasets need a governance layer that doesn't yet exist.`,
+      concise: `Privacy and data governance
+
+Review data protection law against AI-specific risks (training data provenance, purpose limitation, automated-decision accountability). Issue sector guidance rather than new legislation where current law already applies (UK 2020 model).`,
+      portugal: `Privacy and data governance frameworks for Portugal
+
+Portugal currently has no AI-specific review of its data protection framework. Start with a gap analysis against the OECD/GPAI 2024 synthesis, then issue sector guidance, not new legislation, following the UK's 2020 approach, since Portugal's existing GDPR-aligned framework likely covers much of the ground already.
+
+Use OECD/GPAI's 2025 mapping of data collection mechanisms to flag where Portugal's own AI-ready datasets, including local-language resources, need a governance layer that doesn't currently exist.`
+    }
+  },
+  vision: {status:'notstarted', title:'Vision and objectives', sources:[],
+    stub:"Not started yet. This section will state Portugal's overall AI ambition and link it to the gaps identified in this assessment."},
+  monitor: {status:'notstarted', title:'Monitoring and evaluation', sources:[],
+    stub:'Not started yet. This section will define how progress against the roadmap gets tracked and reported once mechanisms are in place.'}
+};
+
+
+// When the HTML file is opened directly (file://) the relative /api/... path
+// can't resolve. Fall back to the absolute localhost address in that case.
+const API_BASE = location.protocol === 'file:' ? 'http://localhost:8000' : '';
+
+const steps = [
+  {
+    user: "Show me where Portugal stands",
+    agent: "<p>Portugal has <strong>3 open gaps</strong> and 2 planned priorities in governance and institutions. The most relevant precedent I found is <strong>America's AI Action Plan (US 2025)</strong> — it pairs a national strategy with named delivery owners and a public milestone tracker, which is exactly the structure Portugal is missing.</p><div class='canvas-hint'>↗ Snapshot tab updated — scroll down to see the comparison and recommended actions</div>",
+    panel: 0,
+  },
+  {
+    user: "How does this compare globally?",
+    agent: "<p>Nine other countries or organisations have published relevant policies. The <strong>UK, US, and Spain</strong> are the strongest governance comparators — each pairs a strategy document with a named, resourced delivery body rather than leaving execution to individual ministries. <strong>Austria and Israel</strong> have the most relevant stakeholder-forum precedents. Portugal is highlighted at the centre.</p><div class='canvas-hint'>↗ Landscape tab updated — click any country node to see its documents</div>",
+    panel: 1,
+  },
+  {
+    user: "What should Portugal prioritize first?",
+    agent: "<p>Three open gaps, ranked by what unblocks the most other work:</p><ol><li><strong>Implementation mechanisms</strong> (now) — nothing else can be resourced or tracked without a delivery body in place</li><li><strong>Budget and financing</strong> (next) — once mechanisms exist, they need a multi-year costed plan behind them</li><li><strong>Privacy and data governance</strong> (later) — cross-cutting, can run in parallel once the above are moving</li></ol><div class='canvas-hint'>↗ Roadmap tab updated — click any card to expand the evidence and claims</div>",
+    panel: 2,
+  },
+  {
+    user: "Help me draft the implementation mechanism section",
+    agent: "<p>I've started a first draft for <strong>Implementation mechanisms</strong> using Spain 2024 and Austria 2024 as structural models — both pair a strategy document with a named, resourced delivery body and phased milestones.</p><p>The text is editable. Use the chips above the textarea to make it more concise, reframe it around Portugal's existing AI unit, or reset to the original.</p><div class='canvas-hint'>↗ Draft tab updated — scroll to the Implementation mechanisms section</div>",
+    panel: 3,
+  }
+];
+
+let stepIndex = 0;
+
+const API_QUERIES = [
+  'Compute subsidies for startups and SMEs',
+  'Multi-year AI R&D funding schemes',
+  'Local language AI resources',
+  'AI research centres and networking',
+];
+
+function renderChips(){
+  const chips = document.getElementById('chips');
+  chips.innerHTML = '';
+  if(stepIndex < steps.length){
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = steps[stepIndex].user;
+    btn.onclick = () => runStep(stepIndex);
+    chips.appendChild(btn);
+  } else {
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:11px;color:var(--muted);padding:4px 0 6px;letter-spacing:.03em;text-transform:uppercase;';
+    label.textContent = 'Analyze live from the pipeline';
+    chips.appendChild(label);
+    API_QUERIES.forEach(q => {
+      const btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.textContent = q;
+      btn.onclick = () => callAPI(q);
+      chips.appendChild(btn);
+    });
+  }
+}
+
+function toggleEvidence(docId, targetId){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  if(el.dataset.current === docId && el.classList.contains('show')){
+    el.classList.remove('show');
+    el.dataset.current = '';
+    return;
+  }
+  const d = documents[docId];
+  if(!d) return;
+  el.innerHTML = '<span class="evtag">Mocked extracted passage, not verified document text</span>'
+    + '<p class="evtext">' + d.excerpt + '</p>'
+    + '<p class="evfrom">From: ' + d.title + ' · ' + d.country + ' ' + d.year + '</p>';
+  el.classList.add('show');
+  el.dataset.current = docId;
+}
+
+function renderRoadmap(){
+  const cols = [
+    {key:'inmotion', label:'In motion', items:[]},
+    {key:'now', label:'Now · 0–6 months', items:[]},
+    {key:'next', label:'Next · 6–12 months', items:[]},
+    {key:'later', label:'Later · parallel track', items:[]}
+  ];
+  const byKey = {};
+  cols.forEach(c => byKey[c.key] = c);
+  recommendations.forEach(r => {
+    const col = r.status === 'planned' ? byKey.inmotion : byKey[r.timeframe];
+    col.items.push(r);
+  });
+
+  const kanban = document.getElementById('kanban');
+  kanban.innerHTML = cols.map(col =>
+    '<div class="kcol" data-col="' + col.key + '"><h4>' + col.label + ' <span class="n">' + col.items.length + '</span></h4>'
+    + col.items.map(renderRecCard).join('')
+    + '</div>'
+  ).join('');
+}
+
+function renderRecCard(r){
+  const tagHtml = r.status === 'planned' ? '<span class="tag planned">Planned</span>' : '<span class="tag no">No</span>';
+  const evId = 'ev-' + r.id;
+  const pills = r.evidenceIds.map(docId => {
+    const d = documents[docId];
+    return '<span class="sourcepill" onclick="event.stopPropagation();toggleEvidence(\'' + docId + '\',\'' + evId + '\')">' + d.title + ' · ' + d.country + ' ' + d.year + '</span>';
+  }).join('');
+  const claims = r.relatedClaims.map(c => '<li>' + c + '</li>').join('');
+  const draftBtn = r.status === 'gap'
+    ? '<button class="draftbtn" onclick="event.stopPropagation();jumpToDraft(\'' + r.id + '\')">Draft this section →</button>'
+    : '';
+  return '<div class="kcard" id="kcard-' + r.id + '" onclick="toggleCard(this)">'
+    + tagHtml + '<h5>' + r.title + '</h5>'
+    + '<div class="why">' + r.why + '</div>'
+    + '<div class="kcard-body">'
+    +   '<div class="rec-block"><span class="rec-label">Recommendation</span><p class="rec-text">' + r.recommendation + '</p></div>'
+    +   '<div class="rec-block"><span class="rec-label">Evidence</span><div class="evidence-pills">' + pills + '</div><div class="evidence" id="' + evId + '"></div></div>'
+    +   '<div class="rec-block"><span class="rec-label">Related claims</span><ul class="claims-list">' + claims + '</ul></div>'
+    +   draftBtn
+    + '</div></div>';
+}
+
+function renderSnapshotActions(){
+  const order = {now:0, next:1, later:2};
+  const gaps = recommendations.filter(r => r.status === 'gap').sort((a,b) => order[a.timeframe] - order[b.timeframe]);
+  const list = document.getElementById('actionsList');
+  list.innerHTML = gaps.map(r =>
+    '<div class="actionrow" onclick="jumpToRoadmap(\'' + r.id + '\')">'
+    + '<span class="tf ' + r.timeframe + '">' + r.timeframe + '</span>'
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div class="at">' + r.title + '</div>'
+    +   '<div class="ar">' + r.recommendation + '</div>'
+    + '</div>'
+    + '<span class="chev">›</span>'
+    + '</div>'
+  ).join('');
+}
+
+function jumpToRoadmap(id){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-2').classList.add('visible');
+  document.getElementById('emptyState').style.display = 'none';
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  document.querySelector('.stage[data-stage="2"]').classList.add('active','done');
+  stepIndex = steps.length;
+  renderChips();
+  const card = document.getElementById('kcard-' + id);
+  if(card){
+    const body = card.querySelector('.kcard-body');
+    if(body) body.classList.add('open');
+    setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+  }
+}
+
+function openCase(url){
+  try{
+    const w = window.open(url, '_blank');
+    if(!w){ window.location.href = url; }
+  }catch(e){
+    window.location.href = url;
+  }
+  return false;
+}
+
+function appendMsg(role, text){
+  const log = document.getElementById('chatlog');
+  const m = document.createElement('div');
+  m.className = 'msg ' + role;
+  m.innerHTML = role === 'user'
+    ? '<div class="bubble">'+text+'</div>'
+    : '<div class="who">Copilot</div><div class="bubble">'+text+'</div>';
+  log.appendChild(m);
+  log.scrollTop = log.scrollHeight;
+  return m;
+}
+
+function runStep(i){
+  const step = steps[i];
+  appendMsg('user', step.user);
+  appendMsg('agent', step.agent);
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-'+step.panel).classList.add('visible');
+
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  const stageEl = document.querySelector('.stage[data-stage="'+step.panel+'"]');
+  stageEl.classList.add('active','done');
+
+  stepIndex = i + 1;
+  renderChips();
+}
+
+function sendFree(){
+  const input = document.getElementById('freeInput');
+  const query = input.value.trim();
+  if(!query) return;
+  input.value = '';
+  callAPI(query);
+}
+
+async function callAPI(query){
+  appendMsg('user', query);
+  const loadingEl = appendMsg('agent', '⏳ Retrieving evidence and generating recommendation…');
+  stepIndex = steps.length;
+  renderChips();
+
+  let rec;
+  try {
+    const resp = await fetch(API_BASE + '/api/recommend', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({query, k:4})
+    });
+    if(!resp.ok){
+      const err = await resp.json().catch(() => ({detail: resp.statusText}));
+      throw new Error(err.detail || resp.statusText);
+    }
+    rec = await resp.json();
+  } catch(e) {
+    loadingEl.querySelector('.bubble').textContent =
+      '⚠️ API call failed: ' + e.message + '. Make sure the server is running (python api.py in rag_pipeline/).';
+    return;
+  }
+
+  // Show the actual answer in chat; actions update the canvas on demand
+  loadingEl.querySelector('.bubble').innerHTML = formatRecBubble(rec);
+  const addBtn = loadingEl.querySelector('.btn-add-roadmap');
+  if(addBtn) addBtn.onclick = () => doAddToRoadmap(rec, addBtn);
+  document.getElementById('chatlog').scrollTop = 9999;
+}
+
+function formatRecBubble(rec){
+  const statusLabel = {gap:'Gap — not yet started', planned:'Planned', implemented:'Implemented', unknown:'Unknown'}[rec.status] || rec.status;
+  const statusClass = rec.status === 'gap' ? 'no' : 'planned';
+  // External evidence sources (not the Portugal self-assessment row)
+  const sources = (rec.evidence || [])
+    .filter(e => e.country && e.country !== (rec.country || 'Portugal'))
+    .slice(0, 3)
+    .map(e => (e.source_title || '') + (e.country ? ' · ' + e.country : '') + (e.year ? ' ' + e.year : ''))
+    .join('<br>');
+  const claims = (rec.related_claims || [])
+    .map(c => '<li>'+c+'</li>').join('');
+  return '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">'+rec.pillar+'</div>'
+    + '<strong>'+rec.priority_title+'</strong> <span class="tag '+statusClass+'" style="font-size:11px;vertical-align:middle;">'+statusLabel+'</span>'
+    + '<p style="margin:9px 0 6px;line-height:1.55;">'+rec.recommendation+'</p>'
+    + (claims ? '<ul style="margin:0 0 8px 16px;padding:0;font-size:12px;color:var(--muted);">'+claims+'</ul>' : '')
+    + (sources ? '<div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6;"><em>Based on:</em><br>'+sources+'</div>' : '')
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">'
+    +   '<button class="chip btn-add-roadmap" style="width:auto;margin:0;font-size:12px;padding:6px 10px;">Add to roadmap →</button>'
+    + '</div>';
+}
+
+function doAddToRoadmap(rec, btn){
+  btn.disabled = true;
+  btn.textContent = 'Added ✓';
+  // Switch to Roadmap tab
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-2').classList.add('visible');
+  document.getElementById('emptyState').style.display = 'none';
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  document.querySelector('.stage[data-stage="2"]').classList.add('active','done');
+  addLiveCard(rec);
+  appendMsg('agent', '"'+rec.priority_title+'" added. Click the card in the Roadmap to expand evidence and claims.');
+  document.getElementById('chatlog').scrollTop = 9999;
+}
+
+function addLiveCard(rec){
+  const id = 'live-' + rec.priority_title.toLowerCase().replace(/[^a-z0-9]/g,'-');
+  const timeframe = rec.timeframe || (rec.status === 'gap' ? 'now' : null);
+  const colKey = rec.status === 'planned' ? 'inmotion' : (timeframe || 'now');
+
+  const card = document.createElement('div');
+  card.innerHTML = renderLiveCard(rec, id);
+
+  // Find or create the matching kanban column
+  const colLabels = {inmotion:'In motion', now:'Now · 0–6 months', next:'Next · 6–12 months', later:'Later · parallel track'};
+  let col = document.querySelector('.kcol[data-col="'+colKey+'"]');
+  if(!col){
+    // Fallback: append to first column
+    col = document.querySelector('.kcol');
+  }
+  if(col){
+    const countEl = col.querySelector('.n');
+    if(countEl) countEl.textContent = parseInt(countEl.textContent||'0') + 1;
+    col.appendChild(card.firstElementChild);
+    card.firstElementChild.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+}
+
+function renderLiveCard(rec, id){
+  const isGap = rec.status === 'gap';
+  const tagHtml = isGap
+    ? '<span class="tag no">No</span>'
+    : '<span class="tag planned">Planned</span>';
+  const evId = 'ev-' + id;
+
+  const pills = (rec.evidence || []).map((ev, i) => {
+    const label = ev.source_title + (ev.country ? ' · ' + ev.country : '') + (ev.year ? ' ' + ev.year : '');
+    return '<span class="sourcepill" onclick="event.stopPropagation();toggleLiveEvidence('+JSON.stringify(evId)+','+i+',this)">'
+      + label + '</span>';
+  }).join('');
+
+  // Store evidence on the element via a data attr (serialised)
+  const evData = JSON.stringify(rec.evidence || []);
+  const claims = (rec.related_claims || []).map(c => '<li>'+c+'</li>').join('');
+  const pillarBadge = '<span style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;">'+rec.pillar+'</span>';
+  const liveBadge = '<span style="font-size:10px;background:var(--teal);color:#fff;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:middle;">Live</span>';
+
+  return '<div class="kcard" id="'+id+'" onclick="toggleCard(this)" data-evidence=\''+evData.replace(/'/g,"&#39;")+'\'>'
+    + tagHtml + '<h5>' + rec.priority_title + liveBadge + '</h5>'
+    + pillarBadge
+    + '<div class="kcard-body open">'
+    +   '<div class="rec-block"><span class="rec-label">Recommendation</span><p class="rec-text">'+rec.recommendation+'</p></div>'
+    +   '<div class="rec-block"><span class="rec-label">Evidence</span><div class="evidence-pills">'+pills+'</div><div class="evidence" id="'+evId+'"></div></div>'
+    +   '<div class="rec-block"><span class="rec-label">Related claims</span><ul class="claims-list">'+claims+'</ul></div>'
+    + '</div></div>';
+}
+
+function toggleLiveEvidence(evId, idx, pill){
+  const el = document.getElementById(evId);
+  if(!el) return;
+  const card = pill.closest('.kcard');
+  const evidence = JSON.parse(card.dataset.evidence || '[]');
+  const ev = evidence[idx];
+  if(!ev) return;
+  const same = el.dataset.current === String(idx) && el.classList.contains('show');
+  if(same){ el.classList.remove('show'); el.dataset.current=''; return; }
+  el.innerHTML = '<span class="evtag">Retrieved passage</span>'
+    + '<p class="evtext">' + (ev.excerpt || '').replace(/\n/g,'<br>') + '</p>'
+    + '<p class="evfrom">From: ' + ev.source_title + (ev.country ? ' · ' + ev.country : '') + (ev.year ? ' ' + ev.year : '') + (ev.url ? ' — <a href="'+ev.url+'" target="_blank">view on oecd.ai</a>' : '') + '</p>';
+  el.classList.add('show');
+  el.dataset.current = String(idx);
+}
+
+function toggleMore(){
+  document.getElementById('moreCountries').classList.toggle('open');
+}
+
+function showDetail(key){
+  const c = countryDocs[key];
+  const el = document.getElementById('mapDetail');
+  if(key === 'portugal'){
+    el.innerHTML = '<strong>Portugal — your assessment</strong><br><span style="color:var(--muted);">Governance and institutions · 5 questions answered · 3 gaps, 2 planned</span>';
+  } else {
+    const rows = c.docs.map(docId => {
+      const d = documents[docId];
+      return '<div style="margin-top:8px;"><strong>'+d.title+'</strong><br><span style="color:var(--muted);">'+d.country+' · '+d.year+'</span>'
+        + (d.url ? '<br><a class="caselink" href="'+d.url+'" onclick="return openCase(this.href)">View on oecd.ai →</a><div class="urlfallback">'+d.url+'</div>' : '') + '</div>';
+    }).join('');
+    el.innerHTML = '<strong>'+c.label+'</strong>' + rows;
+  }
+  el.classList.add('show');
+}
+
+function filterMap(topic){
+  document.querySelectorAll('.node').forEach(n => {
+    const topics = (n.dataset.topic || '').split(',');
+    if(topic === 'all' || topics.includes('all') || topics.includes(topic)){
+      n.classList.remove('dim');
+    } else {
+      n.classList.add('dim');
+    }
+  });
+}
+
+function toggleCard(el){
+  const body = el.querySelector('.kcard-body');
+  if(body) body.classList.toggle('open');
+}
+
+function initDraftPanel(){
+  ['impl','budget','privacy'].forEach(key => {
+    const ta = document.getElementById('draft-'+key);
+    if(ta) ta.value = sectionData[key].variants.original;
+  });
+}
+
+function setDraft(key, variant){
+  const data = sectionData[key];
+  if(!data || data.status !== 'drafted') return;
+  const ta = document.getElementById('draft-'+key);
+  if(ta) ta.value = data.variants[variant];
+}
+
+function startStub(key){
+  sectionData[key].status = 'drafted';
+  sectionData[key].variants = {
+    original: sectionData[key].title + '\n\n[Draft scaffold, replace with leadership input before circulating.]\n\nThis section should tie back to the gaps identified in this assessment: implementation mechanisms, financing, and data governance.',
+    concise: '[Scaffold] ' + sectionData[key].title + ', tied to the three open gaps above.',
+    portugal: '[Scaffold] ' + sectionData[key].title + ', tied to the three open gaps above.'
+  };
+  const block = document.getElementById('sec-'+key);
+  if(!block) return;
+  block.innerHTML =
+    '<div class="sechead"><h3>' + sectionData[key].title + '</h3><span class="statuspill drafted">drafted</span></div>'
+    + '<div class="toolbar">'
+    +   '<button class="chip" style="width:auto;margin:0;" onclick="setDraft(\''+key+'\',\'concise\')">More concise</button>'
+    +   '<button class="chip" style="width:auto;margin:0;" onclick="setDraft(\''+key+'\',\'portugal\')">Portugal framing</button>'
+    +   '<button class="chip" style="width:auto;margin:0;" onclick="setDraft(\''+key+'\',\'original\')">Reset</button>'
+    +   '<button class="downloadbtn" onclick="downloadSection(\''+key+'\')">Download .md</button>'
+    + '</div>'
+    + '<textarea id="draft-'+key+'"></textarea>'
+    + '<div class="sources-used">Freshly scaffolded, no sourced case studies yet.</div>';
+  document.getElementById('draft-'+key).value = sectionData[key].variants.original;
+}
+
+function downloadSection(key){
+  const ta = document.getElementById('draft-'+key);
+  if(!ta) return;
+  const blob = new Blob([ta.value], {type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = key + '.md';
+  a.click();
+}
+
+function jumpToDraft(key){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-3').classList.add('visible');
+  document.getElementById('emptyState').style.display = 'none';
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  document.querySelector('.stage[data-stage="3"]').classList.add('active','done');
+  stepIndex = steps.length;
+  renderChips();
+  appendMsg('agent', 'Jumped to "' + sectionData[key].title + '", all sections are loaded below, scroll to it.');
+  const el = document.getElementById('sec-'+key);
+  if(el) setTimeout(() => el.scrollIntoView({behavior:'smooth', block:'start'}), 50);
+}
+
+document.querySelectorAll('.stage').forEach(s => {
+  s.addEventListener('click', () => {
+    const idx = parseInt(s.dataset.stage);
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+    document.getElementById('panel-'+idx).classList.add('visible');
+    document.getElementById('emptyState').style.display = 'none';
+    document.querySelectorAll('.stage').forEach(x => x.classList.remove('active'));
+    s.classList.add('active','done');
+  });
+});
+
+function resetSession(){
+  // Chat
+  const log = document.getElementById('chatlog');
+  log.innerHTML = '<div class="msg agent"><div class="who">Copilot</div><div class="bubble">Hi, I\'m set up for Portugal, governance and institutions. What do you want to look at first?</div></div>';
+  // State
+  stepIndex = 0;
+  // Canvas
+  renderRoadmap();
+  renderSnapshotActions();
+  initDraftPanel();
+  renderChips();
+  // Show Snapshot tab
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.getElementById('panel-0').classList.add('visible');
+  document.getElementById('emptyState').style.display = 'none';
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active','done'));
+  document.querySelector('.stage[data-stage="0"]').classList.add('active');
+  log.scrollTop = 0;
+}
+
+renderRoadmap();
+renderSnapshotActions();
+initDraftPanel();
+renderChips();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.env
+rag_pipeline/.env
+__pycache__/
+*.pyc
+.DS_Store
+.python-version
