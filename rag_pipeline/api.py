@@ -33,6 +33,7 @@ from schema import Recommendation
 load_dotenv()
 
 MOCKUP_PATH = Path(__file__).parent.parent / "ai_policy_copilot_mockup.html"
+STRESS_TESTER_PATH = Path(__file__).parent.parent / "ai_policy_stress_tester_mockup.html"
 
 app = FastAPI(title="AI Policy Copilot API", version="0.1.0")
 
@@ -49,6 +50,13 @@ def index():
     if not MOCKUP_PATH.exists():
         raise HTTPException(status_code=404, detail="Mockup HTML not found")
     return FileResponse(str(MOCKUP_PATH), media_type="text/html")
+
+
+@app.get("/stress-tester")
+def stress_tester():
+    if not STRESS_TESTER_PATH.exists():
+        raise HTTPException(status_code=404, detail="Stress tester not found")
+    return FileResponse(str(STRESS_TESTER_PATH), media_type="text/html")
 
 
 @app.get("/api/health")

@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Policy Stress Tester</title>
+<style>
+:root{
+  --navy:#0f1f3d;--navy-2:#16294f;--teal:#0f766e;--teal-light:#e6f5f3;
+  --ink:#1a2233;--muted:#5c6478;--line:#e2e5ec;--bg:#f4f5f8;--card:#fff;
+  --amber:#b45309;--amber-bg:#fef3e2;--red:#b3261e;--red-bg:#fdeceb;
+  --green:#166534;--green-bg:#eaf6ec;--gray:#6b7280;--gray-bg:#f3f4f6;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+
+/* Topbar */
+.topbar{background:var(--navy);color:#fff;padding:15px 24px;}
+.topbar h1{margin:0 0 3px;font-size:18px;font-weight:700;letter-spacing:-.01em;}
+.topbar p{margin:0;font-size:12px;color:#c9d2e6;max-width:600px;}
+.badge{display:inline-block;background:#28407a;color:#dce6ff;font-size:11px;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:2px;}
+
+/* Stage bar */
+.stagebar{display:flex;background:#fff;border-bottom:2px solid var(--line);padding:0 18px;overflow-x:auto;}
+.stagebtn{padding:11px 14px;font-size:13px;color:var(--muted);border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:color .15s;margin-bottom:-2px;}
+.stagebtn:hover{color:var(--navy);}
+.stagebtn.active{color:var(--navy);font-weight:600;border-bottom-color:var(--teal);}
+.stagenum{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--line);color:var(--muted);font-size:10px;font-weight:600;}
+.stagebtn.active .stagenum,.stagebtn.done .stagenum{background:var(--teal);color:#fff;}
+
+/* Layout */
+.layout{display:flex;min-height:calc(100vh - 102px);}
+.leftpane{width:320px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;}
+.canvas{flex:1;padding:22px 26px;overflow-y:auto;max-height:calc(100vh - 102px);}
+
+/* Left pane */
+.lsection{padding:14px 16px;border-bottom:1px solid var(--line);}
+.lsection h3{margin:0 0 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;}
+.laction{margin:auto 0 0;padding:14px 16px;border-top:1px solid var(--line);}
+
+/* Scenario selector */
+.sc-card{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;background:#fff;text-align:left;width:100%;transition:border-color .15s,background .15s;}
+.sc-card:hover{border-color:var(--teal);background:var(--teal-light);}
+.sc-card.selected{border-color:var(--teal);background:var(--teal-light);}
+.sc-card:last-child{margin-bottom:0;}
+.sc-label{font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+.sc-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:3px;}
+.sc-desc{font-size:12px;color:var(--muted);line-height:1.4;}
+
+/* Status badges */
+.sbadge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap;}
+.sbadge.present{background:var(--green-bg);color:var(--green);}
+.sbadge.partial{background:var(--amber-bg);color:var(--amber);}
+.sbadge.missing{background:var(--red-bg);color:var(--red);}
+.sbadge.not-assessed{background:var(--gray-bg);color:var(--gray);}
+.cbadge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--bg);color:var(--muted);border:1px solid var(--line);}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-bottom:14px;}
+.panel-title{font-size:17px;margin:0 0 3px;color:var(--navy);}
+.panel-sub{font-size:13px;color:var(--muted);margin:0 0 18px;}
+
+/* Meta grid */
+.metagrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12.5px;}
+.mk{color:var(--muted);margin-bottom:2px;font-size:11px;}
+.mv{color:var(--ink);font-weight:500;line-height:1.3;}
+.taglist{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.tag{display:inline-block;font-size:11px;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:2px 8px;border-radius:12px;}
+
+/* Rubric */
+.rubric-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.rubric-row:last-child{border-bottom:none;}
+.rubric-n{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.rubric-body{flex:1;}
+.rubric-name{font-size:13px;font-weight:600;color:var(--ink);}
+.rubric-q{font-size:12px;color:var(--muted);margin:2px 0 5px;line-height:1.4;}
+.rubric-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.rubric-rationale{font-size:12.5px;color:var(--ink);line-height:1.45;margin-top:8px;padding:8px 10px;background:var(--bg);border-radius:6px;display:none;}
+.rubric-rationale.open{display:block;}
+.expand-btn{background:none;border:none;color:var(--teal);font-size:11px;cursor:pointer;padding:0;margin-top:4px;}
+.expand-btn:hover{text-decoration:underline;}
+.report-link{background:none;border:none;color:var(--muted);font-size:10px;cursor:pointer;text-decoration:underline;padding:0;margin-left:auto;}
+.report-link:hover{color:var(--amber);}
+
+/* Response chain */
+.chain-wrap{overflow-x:auto;padding:8px 0 20px;}
+.chain{display:flex;align-items:flex-start;gap:0;min-width:max-content;}
+.chain-node{display:flex;flex-direction:column;align-items:center;cursor:pointer;width:96px;}
+.chain-node:hover .chain-dot{transform:scale(1.08);}
+.chain-node.sel .chain-dot{box-shadow:0 0 0 3px var(--teal);}
+.chain-dot{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;margin:0 auto 6px;border:2px solid transparent;transition:transform .15s;}
+.chain-dot.green{background:var(--green-bg);color:var(--green);border-color:var(--green);}
+.chain-dot.amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
+.chain-dot.red{background:var(--red-bg);color:var(--red);border-color:var(--red);}
+.chain-dot.gray{background:var(--gray-bg);color:var(--gray);border-color:var(--gray);}
+.chain-label{font-size:11px;color:var(--ink);font-weight:500;line-height:1.3;text-align:center;padding:0 4px;}
+.chain-conn{width:28px;height:2px;background:var(--line);flex-shrink:0;align-self:center;margin-bottom:22px;}
+
+/* Chain detail */
+.chain-detail{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:16px;font-size:13px;animation:fadein .2s ease;}
+.chain-dh{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.chain-dh h4{margin:0;font-size:14px;color:var(--navy);}
+.ds{margin-bottom:8px;}
+.ds-lbl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+.ds-val{font-size:13px;color:var(--ink);line-height:1.4;}
+.evblock{margin-top:10px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;}
+.ev-lbl{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.ev-text{font-style:italic;color:var(--ink);line-height:1.5;font-size:12.5px;margin-bottom:4px;}
+.ev-src{font-size:11px;color:var(--muted);}
+.alist{margin:3px 0 0 16px;padding:0;font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* Failure cards */
+.fail-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;cursor:pointer;}
+.fail-card:hover{border-color:var(--line);}
+.fail-header{display:flex;align-items:flex-start;gap:12px;}
+.fail-rank{width:28px;height:28px;border-radius:50%;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;}
+.fail-title{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.fail-summary{font-size:12.5px;color:var(--muted);line-height:1.4;}
+.fail-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.chain-step-tag{font-size:10px;padding:2px 7px;background:#e4ecfb;color:#1d4ed8;border-radius:6px;font-weight:600;}
+.fail-body{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+.fail-body.open{display:block;}
+.fail-sec{margin-bottom:10px;}
+.fail-sec-lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+.fail-sec-val{font-size:13px;color:var(--ink);line-height:1.4;}
+.counterarg{padding:8px 10px;background:var(--amber-bg);border-radius:6px;font-size:12px;color:var(--amber);border-left:3px solid var(--amber);}
+.actor-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.actor-tag{font-size:11px;background:var(--bg);border:1px solid var(--line);color:var(--muted);padding:2px 7px;border-radius:12px;}
+
+/* Repair plan */
+.legal-notice{background:var(--amber-bg);color:var(--amber);border:1px solid #fcd34d;border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:14px;line-height:1.4;}
+.repair-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-bottom:14px;}
+.repair-type{font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.repair-title{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:10px;}
+.repair-lang{width:100%;min-height:130px;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;font-family:inherit;line-height:1.6;resize:vertical;background:var(--bg);color:var(--ink);}
+.repair-lang:focus{outline:2px solid var(--teal);border-color:transparent;}
+.repair-footer{margin-top:10px;font-size:12px;color:var(--muted);}
+.repair-footer span{margin-right:12px;}
+.repair-links a{color:var(--teal);font-size:11px;text-decoration:none;}
+.repair-links a:hover{text-decoration:underline;}
+
+/* Buttons */
+.btn-primary{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;}
+.btn-primary:hover{background:var(--navy-2);}
+.btn-sec{background:#fff;color:var(--navy);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;}
+.btn-sec:hover{border-color:var(--teal);color:var(--teal);}
+.btn-dl{background:#fff;color:var(--teal);border:1px solid var(--teal);border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;}
+.btn-dl:hover{background:var(--teal-light);}
+.actions-row{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+
+/* Source pill */
+.spill{display:inline-block;font-size:11px;background:var(--bg);border:1px solid var(--line);color:var(--muted);padding:2px 8px;border-radius:12px;margin:2px;cursor:pointer;}
+.spill:hover{background:var(--teal-light);border-color:var(--teal);color:var(--navy);}
+.spill.unverified{border-color:var(--amber);color:var(--amber);}
+
+/* Integrity notice */
+.integrity{background:#f8f9fb;border:1px solid var(--line);border-radius:8px;padding:9px 13px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+.integrity strong{color:var(--ink);}
+
+/* Panel + animation */
+.panel{display:none;}
+.panel.visible{display:block;animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* Left pane mini-failure list */
+.mini-fail{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;cursor:pointer;}
+.mini-fail:last-child{border-bottom:none;}
+.mini-fail:hover{color:var(--teal);}
+.mf-rank{width:18px;height:18px;border-radius:50%;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.mf-title{flex:1;line-height:1.3;color:var(--ink);}
+
+/* Chain legend */
+.chain-legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-bottom:12px;flex-wrap:wrap;}
+.chain-legend span{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* Mobile layout */
+@media(max-width:700px){
+  .layout{flex-direction:column;}
+  .leftpane{width:100%;border-right:none;border-bottom:1px solid var(--line);max-height:260px;}
+  .canvas{padding:14px;}
+  .metagrid{grid-template-columns:1fr;}
+  .topbar p{display:none;}
+  .chain-node{width:76px;}
+  .chain-conn{width:14px;}
+}
+
+/* Source modal overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center;}
+.overlay.hidden{display:none;}
+.modal{background:#fff;border-radius:14px;padding:22px 24px;max-width:520px;width:90%;font-size:13px;max-height:80vh;overflow-y:auto;}
+.modal h3{margin:0 0 10px;font-size:15px;color:var(--navy);}
+.modal-close{float:right;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);margin-top:-4px;}
+.modal-close:hover{color:var(--red);}
+.modal-row{display:flex;gap:8px;margin-bottom:6px;font-size:12.5px;}
+.modal-key{color:var(--muted);min-width:110px;flex-shrink:0;}
+.modal-val{color:var(--ink);word-break:break-word;}
+.modal-excerpt{margin-top:10px;padding:10px 12px;background:var(--bg);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;font-size:12.5px;}
+.excerpt-type{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+
+hr.divider{border:none;border-top:1px solid var(--line);margin:14px 0;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>AI Policy Stress Tester <span class="badge">prototype</span></h1>
+  <p>See whether an AI policy still works when incentives, evidence, and institutions come under pressure.</p>
+</div>
+
+<nav class="stagebar" role="tablist" aria-label="Workflow stages">
+  <button class="stagebtn active" data-stage="0" role="tab" aria-selected="true"><span class="stagenum" aria-hidden="true">1</span>Policy</button>
+  <button class="stagebtn" data-stage="1" role="tab" aria-selected="false"><span class="stagenum" aria-hidden="true">2</span>Scenario</button>
+  <button class="stagebtn" data-stage="2" role="tab" aria-selected="false"><span class="stagenum" aria-hidden="true">3</span>Failure points</button>
+  <button class="stagebtn" data-stage="3" role="tab" aria-selected="false"><span class="stagenum" aria-hidden="true">4</span>Repair plan</button>
+</nav>
+
+<div class="layout">
+  <aside class="leftpane" id="leftpane" aria-label="Controls"></aside>
+  <main class="canvas" id="canvas">
+    <div class="panel visible" id="panel-0"></div>
+    <div class="panel" id="panel-1"></div>
+    <div class="panel" id="panel-2"></div>
+    <div class="panel" id="panel-3"></div>
+  </main>
+</div>
+
+<!-- Source detail modal -->
+<div class="overlay hidden" id="overlay" role="dialog" aria-modal="true" aria-label="Source detail">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modal-close" aria-label="Close">&#x2715;</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Escape helper ────────────────────────────────────────────────────────────
+function esc(s){
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Data model ───────────────────────────────────────────────────────────────
+const POLICY = {
+  id:'anthropic-rsp-2024',
+  name:'Responsible Scaling Policy',
+  issuingOrg:'Anthropic PBC',
+  jurisdiction:'United States (company policy; applies to all Anthropic deployments globally)',
+  publicationDate:'2024-09-25',
+  version:'1.0 (September 2024 revision)',
+  policyType:'Voluntary company commitment',
+  enforcementType:'voluntary',
+  risksAddressed:['Biological and chemical weapons uplift','Cyberattack capability uplift','Autonomous replication and power-seeking','Models with extremely high general capability'],
+  actorsGoverned:['Anthropic (developer)','Anthropic employees and contractors','API customers (indirectly through usage policies)'],
+  sourcesCheckedThrough:'2025-07-01',
+  officialUrl:'https://www.anthropic.com/responsible-scaling-policy'
+};
+
+const SOURCES = {
+  'rsp':{
+    id:'rsp',title:'Responsible Scaling Policy',issuingBody:'Anthropic PBC',
+    jurisdiction:'United States',publicationDate:'2024-09-25',version:'1.0 (Sep 2024)',
+    sourceType:'Voluntary company policy',
+    officialUrl:'https://www.anthropic.com/responsible-scaling-policy',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: The policy commits Anthropic not to train or deploy models assessed at ASL-3 or above without first implementing the corresponding safety and security measures, as determined by internal evaluation.',
+    excerptType:'Paraphrase',
+    locator:{page:null,section:'Core commitments',paragraph:''},
+    verified:true,primarySource:true,
+    relevance:'Primary policy being assessed',
+    limitations:'Self-imposed commitments; enforcement mechanism is internal only. Evaluation methodology determined by Anthropic.'
+  },
+  'rsp-deploy':{
+    id:'rsp-deploy',title:'Responsible Scaling Policy — Deployment commitments',issuingBody:'Anthropic PBC',
+    jurisdiction:'United States',publicationDate:'2024-09-25',version:'1.0 (Sep 2024)',
+    sourceType:'Voluntary company policy',
+    officialUrl:'https://www.anthropic.com/responsible-scaling-policy',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: If Anthropic determines a model may have reached ASL-3, it commits to pause further training and deployment until required safety measures have been implemented and verified.',
+    excerptType:'Paraphrase',
+    locator:{page:null,section:'Deployment commitments',paragraph:''},
+    verified:true,primarySource:true,
+    relevance:'Deployment restriction mechanism',
+    limitations:'Decision rests entirely with Anthropic; no independent verification required before lifting restriction.'
+  },
+  'iaisr':{
+    id:'iaisr',title:'International Scientific Report on the Safety of Advanced AI (Interim)',issuingBody:'International AI Safety Report Commission',
+    jurisdiction:'International',publicationDate:'2024-05-17',version:'Interim',
+    sourceType:'Scientific assessment',
+    officialUrl:'https://www.gov.uk/government/publications/international-scientific-report-on-the-safety-of-advanced-ai',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: Evaluations for dangerous capabilities are still nascent; there is no settled methodology for determining when a capability threshold has been crossed, and results can be contested by experts.',
+    excerptType:'Paraphrase',
+    locator:{page:28,section:'Evaluating Dangerous Capabilities',paragraph:''},
+    verified:true,primarySource:true,
+    relevance:'Scientific consensus on evaluation uncertainty and nascent methodology',
+    limitations:'Interim report; conclusions may be updated in the final version.'
+  },
+  'eu-ai-act':{
+    id:'eu-ai-act',title:'Regulation (EU) 2024/1689 — Artificial Intelligence Act',issuingBody:'European Parliament and Council of the EU',
+    jurisdiction:'European Union',publicationDate:'2024-07-12',version:'Official text',
+    sourceType:'Binding regulation',
+    officialUrl:'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: Providers of general-purpose AI models with systemic risk must notify the AI Office of serious incidents without undue delay.',
+    excerptType:'Paraphrase',
+    locator:{page:null,section:'GPAI model obligations — incident reporting',paragraph:''},
+    verified:true,primarySource:true,
+    relevance:'Regulatory comparator: mandatory incident reporting requirement',
+    limitations:'EU jurisdiction only; phased implementation. Does not yet apply to all capability levels covered by the RSP.'
+  },
+  'nist-rmf':{
+    id:'nist-rmf',title:'AI Risk Management Framework 1.0',issuingBody:'NIST',
+    jurisdiction:'United States',publicationDate:'2023-01-26',version:'1.0',
+    sourceType:'Government framework (voluntary)',
+    officialUrl:'https://airc.nist.gov/Home',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: Effective AI risk management requires diverse stakeholder involvement — developers, operators, affected communities, and government — to ensure risks are identified and managed appropriately.',
+    excerptType:'Paraphrase',
+    locator:{page:6,section:'Introduction',paragraph:''},
+    verified:true,primarySource:true,
+    relevance:'Reference framework for multi-stakeholder governance criteria',
+    limitations:'Voluntary guidance; not legally binding.'
+  },
+  'metr':{
+    id:'metr',title:'Frontier AI Safety Policies — Assessment index',issuingBody:'METR (Model Evaluation & Threat Research)',
+    jurisdiction:'International',publicationDate:'2024-01-01',version:'Living document',
+    sourceType:'Third-party assessment',
+    officialUrl:'https://metr.org/blog/2023-09-26-rsp/',
+    accessedDate:'2025-07-01',
+    excerpt:'Paraphrase: The RSP establishes capability thresholds (ASL levels) and corresponding safety requirements, but the methodology for determining whether a threshold has been reached remains largely determined by Anthropic itself.',
+    excerptType:'Paraphrase',
+    locator:{page:null,section:'Analysis',paragraph:''},
+    verified:true,primarySource:false,
+    relevance:'Third-party assessment of the policy\'s structural properties',
+    limitations:'METR\'s assessment may lag policy updates. Reflects analytical judgment, not legal interpretation.'
+  }
+};
+
+const CRITERIA = [
+  {id:'c1',name:'Risk definition',q:'Is the relevant harm or capability clearly defined?'},
+  {id:'c2',name:'Observable indicator',q:'Is there a measurable warning sign or threshold?'},
+  {id:'c3',name:'Reporting obligation',q:'Who must report what, to whom, and by when?'},
+  {id:'c4',name:'Decision authority',q:'Who can delay, restrict, recall, or stop the activity?'},
+  {id:'c5',name:'Mandatory response',q:'Is action required or merely recommended?'},
+  {id:'c6',name:'Independent scrutiny',q:'Can an external body inspect evidence or challenge conclusions?'},
+  {id:'c7',name:'Incentive robustness',q:'Does the mechanism still function under commercial or geopolitical pressure?'},
+  {id:'c8',name:'Coordination',q:'Are responsibilities allocated across agencies, companies, and jurisdictions?'},
+  {id:'c9',name:'Public communication',q:'Are affected parties informed and can decisions be challenged?'},
+  {id:'c10',name:'Recovery and learning',q:'Are there fallback plans, exercises, after-action reviews, and revision procedures?'}
+];
+
+const SCENARIOS = {
+  A:{
+    id:'A',label:'Scenario A',
+    title:'Dangerous biological capability',
+    desc:'A frontier model demonstrates substantially increased ability to assist biological-weapons development. The evaluation is noisy, external experts disagree, and the developer faces competitive pressure to deploy.',
+    tags:['Bioweapons uplift','Evaluation uncertainty','Competitive pressure']
+  },
+  B:{
+    id:'B',label:'Scenario B',
+    title:'Model-weight theft',
+    desc:'A frontier model\'s weights may have been stolen by a sophisticated actor. The developer cannot immediately determine the extent of the breach.',
+    tags:['Security incident','Cross-border','Containment']
+  },
+  C:{
+    id:'C',label:'Scenario C',
+    title:'Critical institutional dependency',
+    desc:'Government services become dependent on a small number of advanced AI providers. A provider withdraws access or suffers a prolonged failure that impairs essential services.',
+    tags:['Gradual disempowerment','Continuity','Concentration']
+  }
+};
+
+// ── Assessment findings ───────────────────────────────────────────────────────
+const FINDINGS = {
+  A:[
+    {cid:'c1',status:'present',confidence:'high',
+     rationale:'The RSP defines ASL-3 as including models that meaningfully uplift actors seeking to create biological or chemical weapons capable of mass casualties. The definition is specific to dangerous-capability categories.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c2',status:'partial',confidence:'medium',
+     rationale:'Evaluation frameworks reference observable capability uplifts. However, the International AI Safety Report notes that evaluation methodology is still nascent and results can be contested. Anthropic determines when a threshold is crossed.',
+     sourceIds:['rsp','iaisr'],assumptions:['Anthropic evaluation results are conducted in good faith'],
+     missingInfo:['Standardised quantified thresholds','Independent validation protocol']},
+    {cid:'c3',status:'missing',confidence:'high',
+     rationale:'No evidence located of a mandatory external reporting obligation — to government, regulators, or independent bodies — when a dangerous-capability finding is made. Internal reporting processes are implied but not specified in the public policy.',
+     sourceIds:['rsp'],assumptions:[],
+     missingInfo:['Government notification requirement','Reporting deadline','External reporting channel']},
+    {cid:'c4',status:'partial',confidence:'medium',
+     rationale:'Anthropic leadership holds authority to pause training and restrict deployment. No external authority — regulator, independent board, or government — has formal power to order restriction independently of Anthropic\'s own assessment.',
+     sourceIds:['rsp-deploy'],assumptions:['Authority resides with Anthropic leadership'],
+     missingInfo:['Named role with authority','External oversight body with veto power']},
+    {cid:'c5',status:'partial',confidence:'medium',
+     rationale:'The RSP uses obligatory language ("will not deploy") for core commitments, indicating mandatory intent. However, these are self-imposed obligations with no external enforcement mechanism — compliance depends on internal culture and leadership.',
+     sourceIds:['rsp'],assumptions:['Commitments are made and honored in good faith'],
+     missingInfo:['External enforcement of mandatory provisions']},
+    {cid:'c6',status:'missing',confidence:'high',
+     rationale:'No external body has a formal role in reviewing evaluations or challenging deployment decisions. Third-party audits of capability assessments are not required by the policy. METR has conducted assessments, but not under a binding obligation.',
+     sourceIds:['rsp','metr'],assumptions:[],
+     missingInfo:['Independent audit requirement','External challenge mechanism','Appeals process']},
+    {cid:'c7',status:'partial',confidence:'low',
+     rationale:'The RSP acknowledges that competitive pressure is a risk and establishes commitments designed to resist it. However, no external check exists to verify compliance when competitive pressure is highest. Confidence is low because this cannot be assessed without a track record under real pressure.',
+     sourceIds:['rsp'],assumptions:['Commitments hold under competitive pressure — this is an assumption, not a verified finding'],
+     missingInfo:['Independent verification mechanism','Evidence of past compliance under competitive pressure']},
+    {cid:'c8',status:'missing',confidence:'high',
+     rationale:'The RSP is a unilateral company policy. No provisions allocate responsibilities across other AI developers, government agencies, or international bodies when dangerous capabilities are detected.',
+     sourceIds:['rsp'],assumptions:[],
+     missingInfo:['Cross-company coordination protocol','Government liaison mechanism','International coordination']},
+    {cid:'c9',status:'missing',confidence:'high',
+     rationale:'No mandatory public disclosure of dangerous-capability findings is required. Affected parties — researchers, civil society, governments, users — have no formal right to be informed or to challenge decisions.',
+     sourceIds:['rsp'],assumptions:[],
+     missingInfo:['Public disclosure requirement','Affected-party rights','Challenge or appeal mechanism']},
+    {cid:'c10',status:'not-assessed',confidence:'low',
+     rationale:'Post-incident review and recovery procedures are not specified in the public RSP. Internal procedures may exist. Insufficient evidence in reviewed sources to assess this dimension.',
+     sourceIds:['rsp'],assumptions:['Internal procedures may exist beyond the public policy document'],
+     missingInfo:['Post-incident review protocol','Policy revision mechanism','Exercises and drills']}
+  ],
+  B:[
+    {cid:'c1',status:'partial',confidence:'medium',
+     rationale:'The RSP includes security requirements for ASL-3 models regarding model weights, but does not provide a comprehensive definition of what constitutes a security incident or breach.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Formal incident classification taxonomy']},
+    {cid:'c2',status:'partial',confidence:'low',
+     rationale:'Observable indicators for weight theft are not specified. General cybersecurity monitoring is implied but no AI-specific tripwires or detection requirements are defined.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Detection criteria','Alert thresholds']},
+    {cid:'c3',status:'missing',confidence:'high',
+     rationale:'No evidence of mandatory reporting deadlines for security incidents involving model weights. General cybersecurity incident reporting requirements (e.g., under SEC rules for US companies) may apply, but the RSP does not specify AI-specific obligations.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Mandatory reporting timeline','Government notification duty','Public disclosure requirement']},
+    {cid:'c4',status:'partial',confidence:'medium',
+     rationale:'Anthropic has authority to restrict API access and revoke credentials. No external authority has formal power to compel containment measures.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['External authority to compel containment']},
+    {cid:'c5',status:'partial',confidence:'low',
+     rationale:'Containment measures are implied by security commitments, but mandatory action for uncertain breaches (where the extent is unknown) is not specified.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Mandatory action for inconclusive breach detection']},
+    {cid:'c6',status:'missing',confidence:'high',
+     rationale:'No independent body has a role in assessing the extent of a breach or validating containment measures.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Independent breach assessment','External validation of containment']},
+    {cid:'c7',status:'not-assessed',confidence:'low',
+     rationale:'Insufficient evidence to assess whether security commitments hold under conditions where disclosure could harm the company\'s competitive position.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c8',status:'missing',confidence:'high',
+     rationale:'Cross-border coordination for weight theft incidents is not addressed. If weights are stolen by a foreign state actor, international coordination mechanisms are absent.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Cross-border coordination protocol','Government coordination']},
+    {cid:'c9',status:'missing',confidence:'high',
+     rationale:'No mandatory public disclosure of weight-theft incidents is required. Users and governments are not formally entitled to be informed.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Public notification requirement','User disclosure duty']},
+    {cid:'c10',status:'not-assessed',confidence:'low',
+     rationale:'Post-incident review for security breaches is not specified in the public policy.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Post-incident review','Recovery plan']}
+  ],
+  C:[
+    {cid:'c1',status:'not-assessed',confidence:'low',
+     rationale:'The RSP is a developer policy focused on dangerous-capability risks in Anthropic\'s own models. Institutional dependency and concentration risk are outside its stated scope. This is a gap in the broader governance landscape, not a failing specific to the RSP.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Policy addressing AI concentration risk']},
+    {cid:'c2',status:'not-assessed',confidence:'low',
+     rationale:'No concentration thresholds or dependency monitoring provisions are located in the RSP. These would typically appear in procurement policy or sector-specific regulation.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Dependency monitoring requirements']},
+    {cid:'c3',status:'not-assessed',confidence:'low',
+     rationale:'The RSP does not address reporting obligations for institutional dependency scenarios.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c4',status:'not-assessed',confidence:'low',
+     rationale:'Decision authority for managing critical dependencies would lie with government procurement agencies and sector regulators, not with AI developers.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Procurement authority','Sector regulator role']},
+    {cid:'c5',status:'not-assessed',confidence:'low',
+     rationale:'Mandatory continuity provisions would appear in government policy, not a developer\'s responsible-scaling policy.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c6',status:'not-assessed',confidence:'low',rationale:'Outside RSP scope.',sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c7',status:'not-assessed',confidence:'low',rationale:'Not addressed by the RSP.',sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c8',status:'not-assessed',confidence:'low',
+     rationale:'Scenario C requires coordination across government, regulators, and multiple providers — none of which a single developer policy addresses.',
+     sourceIds:['rsp'],assumptions:[],missingInfo:['Multi-provider coordination framework']},
+    {cid:'c9',status:'not-assessed',confidence:'low',rationale:'Outside RSP scope.',sourceIds:['rsp'],assumptions:[],missingInfo:[]},
+    {cid:'c10',status:'not-assessed',confidence:'low',rationale:'Continuity exercises and recovery plans are typically government responsibilities.',sourceIds:['rsp'],assumptions:[],missingInfo:[]}
+  ]
+};
+
+// ── Response chain nodes ──────────────────────────────────────────────────────
+const CHAIN = {
+  A:[
+    {id:'warning',icon:'⚠️',label:'Warning signal',status:'amber',
+     assessment:'Partial',
+     rationale:'ASL levels define capability categories. However, evaluation methodology is determined by Anthropic, and the International AI Safety Report notes no settled standard for when a threshold is crossed. External experts may reach different conclusions from the same data.',
+     sourceId:'iaisr',confidence:'medium',
+     assumptions:['Anthropic evaluations are conducted in good faith','Internal evaluators have sufficient domain expertise'],
+     missingInfo:['Standardised evaluation protocol','Independent validation requirement']},
+    {id:'reporting',icon:'📋',label:'Reporting duty',status:'red',
+     assessment:'Missing',
+     rationale:'No evidence located in reviewed sources of a mandatory external reporting obligation when dangerous-capability findings are made. Neither government nor independent bodies are formally notified.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],
+     missingInfo:['Government notification requirement','Reporting deadline','External reporting channel']},
+    {id:'decision',icon:'👤',label:'Decision authority',status:'amber',
+     assessment:'Partial',
+     rationale:'Anthropic leadership holds authority to pause training and restrict deployment. However, no external authority has formal power to order restriction independently. Under competitive pressure, the decision-maker faces an inherent conflict of interest.',
+     sourceId:'rsp-deploy',confidence:'medium',
+     assumptions:['Authority exercised by Anthropic leadership'],
+     missingInfo:['Named external authority','Independent oversight with veto power']},
+    {id:'deadline',icon:'⏱️',label:'Deadline',status:'red',
+     assessment:'Missing',
+     rationale:'No mandatory timelines found for completing evaluations, reaching deployment decisions, or implementing restrictions. Open-ended timelines allow indefinite delay under commercial pressure.',
+     sourceId:'rsp',confidence:'medium',
+     assumptions:[],
+     missingInfo:['Maximum evaluation period','Decision deadline','Escalation timeline']},
+    {id:'action',icon:'🔒',label:'Required action',status:'amber',
+     assessment:'Partial',
+     rationale:'Deployment restrictions are stated as firm commitments ("will not deploy"). The policy does not, however, specify what happens when evaluations are inconclusive — a likely scenario given acknowledged evaluation uncertainty.',
+     sourceId:'rsp-deploy',confidence:'medium',
+     assumptions:['Commitments are honored in good faith'],
+     missingInfo:['Protocol for inconclusive evaluations','Fallback when experts disagree']},
+    {id:'enforcement',icon:'⚖️',label:'Enforcement',status:'red',
+     assessment:'Missing',
+     rationale:'The RSP is a voluntary self-commitment. No external body can compel compliance or impose consequences for non-compliance. Enforcement relies entirely on internal culture and leadership priorities.',
+     sourceId:'metr',confidence:'high',
+     assumptions:[],
+     missingInfo:['External enforcement mechanism','Sanctions for non-compliance','Independent audit rights']},
+    {id:'disclosure',icon:'📣',label:'Disclosure',status:'red',
+     assessment:'Missing',
+     rationale:'No mandatory public or regulatory disclosure of dangerous-capability findings is required. Governments, researchers, and users have no formal right to be informed when a threshold evaluation has been conducted or its results.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],
+     missingInfo:['Public notification requirement','Government disclosure duty','Affected-party rights']},
+    {id:'recovery',icon:'🔄',label:'Recovery',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Post-incident review and recovery procedures are not specified in the public RSP. Internal procedures may exist but were not found in reviewed sources. Insufficient evidence to assess.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:['Internal procedures may exist beyond the public policy document'],
+     missingInfo:['Post-incident review protocol','Policy revision trigger','Tabletop exercises']}
+  ],
+  B:[
+    {id:'detect',icon:'🔍',label:'Breach detection',status:'amber',
+     assessment:'Partial',
+     rationale:'Security requirements exist for ASL-3 model weights. Specific detection mechanisms and alert criteria are not defined in the public policy.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['AI-specific detection criteria','Alert thresholds']},
+    {id:'classify',icon:'📁',label:'Incident classification',status:'amber',
+     assessment:'Partial',
+     rationale:'The RSP includes security requirements but no formal incident-classification taxonomy for AI model weight breaches.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Formal classification taxonomy','Severity tiers']},
+    {id:'notify',icon:'📋',label:'Government notification',status:'red',
+     assessment:'Missing',
+     rationale:'No mandatory notification of government or law enforcement upon suspected weight theft. General cybersecurity disclosure requirements may apply via other regulations, but the RSP does not specify AI-specific obligations.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],missingInfo:['Mandatory notification duty','Notification deadline']},
+    {id:'contain',icon:'🔒',label:'Containment',status:'amber',
+     assessment:'Partial',
+     rationale:'Anthropic can revoke API access and restrict deployment. Mandatory containment actions for uncertain or partial breaches are not specified.',
+     sourceId:'rsp',confidence:'medium',
+     assumptions:[],missingInfo:['Mandatory action for uncertain breach','Containment checklist']},
+    {id:'disclose-b',icon:'📣',label:'Public disclosure',status:'red',
+     assessment:'Missing',
+     rationale:'No mandatory public disclosure of weight theft is required. Users who may be affected by malicious use of stolen weights are not formally entitled to notice.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],missingInfo:['Public disclosure requirement','User notification duty']},
+    {id:'recover-b',icon:'🔄',label:'Recovery review',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Post-incident review after a weight-theft event is not specified in the public policy.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Post-incident review','Policy revision trigger']}
+  ],
+  C:[
+    {id:'monitor',icon:'📊',label:'Dependency monitoring',status:'red',
+     assessment:'Missing (out of RSP scope)',
+     rationale:'The RSP is a developer policy focused on Anthropic\'s own models. Monitoring of government dependency on AI providers is outside its scope. This gap exists in the broader governance landscape.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],missingInfo:['Procurement monitoring policy','Concentration monitoring requirement']},
+    {id:'threshold',icon:'⚠️',label:'Concentration threshold',status:'red',
+     assessment:'Missing (out of RSP scope)',
+     rationale:'No concentration thresholds are defined. This would typically appear in sector-specific regulation or procurement policy, not a developer\'s scaling policy.',
+     sourceId:'rsp',confidence:'high',
+     assumptions:[],missingInfo:['Concentration limits','Procurement safeguards']},
+    {id:'fallback',icon:'🔁',label:'Human fallback',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Fallback capacity requirements for government services are outside RSP scope. Assessment would require review of government continuity and procurement policies.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Continuity plans','Fallback capacity requirements']},
+    {id:'portability',icon:'📦',label:'Data portability',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Exit rights and data-portability provisions are procurement and regulatory concerns, not addressed by the RSP.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Exit provisions','Data-portability requirements']},
+    {id:'accountability',icon:'👥',label:'Public accountability',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Public accountability for institutional AI dependency is a government responsibility, outside the RSP\'s scope.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Public accountability mechanism']},
+    {id:'exercise',icon:'🔄',label:'Recovery exercise',status:'gray',
+     assessment:'Not assessed',
+     rationale:'Tabletop exercises and continuity drills for AI service outages are government responsibilities. Not addressed by the RSP.',
+     sourceId:'rsp',confidence:'low',
+     assumptions:[],missingInfo:['Exercise schedule','Recovery procedures']}
+  ]
+};
+
+// ── Failure points ────────────────────────────────────────────────────────────
+const FAILURES = {
+  A:[
+    {rank:1,title:'No fallback for inconclusive evaluations',
+     summary:'When evaluation results are ambiguous — the most likely real-world scenario — the policy leaves deployment discretion entirely with the developer, who faces competitive pressure to proceed.',
+     why:'Biological-capability evaluations are acknowledged to be nascent and contestable. Without a mandatory pause for inconclusive results, there is no mechanism to prevent deployment proceeding when experts disagree.',
+     chainStep:'Required action',evidenceStatus:'partial',
+     actors:['Anthropic leadership','External biosecurity experts','Government health agencies'],
+     minRepair:'Require a temporary deployment restriction and mandatory independent review when evaluations are inconclusive above a predefined uncertainty threshold.',
+     longRepair:'Establish a standing independent evaluation panel — biosecurity experts, AI safety researchers, government representatives — with authority to adjudicate contested evaluations before deployment proceeds.',
+     counterarg:'Requiring pauses for all inconclusive results could indefinitely block deployment of beneficial models, given that some evaluation uncertainty is inherent.',
+     sourceIds:['rsp','iaisr']},
+    {rank:2,title:'No mandatory government notification',
+     summary:'Dangerous-capability detection triggers no legal obligation to notify regulators, health agencies, or biosecurity bodies.',
+     why:'Governments cannot coordinate a response to a risk they are not informed about. Under competitive pressure, internal notification may be delayed or suppressed.',
+     chainStep:'Reporting duty',evidenceStatus:'missing',
+     actors:['National biosecurity agencies','AI safety regulators','Public health bodies'],
+     minRepair:'Add a mandatory notification requirement: if an evaluation triggers ASL-3 consideration for biological capabilities, relevant government agencies are notified within 72 hours.',
+     longRepair:'Integrate AI dangerous-capability reporting into a structured incident-reporting framework analogous to cybersecurity disclosure requirements.',
+     counterarg:'Pre-deployment notification may create competitive disadvantage and expose proprietary evaluation methods before conclusions are settled.',
+     sourceIds:['rsp','eu-ai-act']},
+    {rank:3,title:'No external enforcement mechanism',
+     summary:'All commitments are self-enforced. No external body can compel compliance or impose consequences for non-compliance.',
+     why:'Without external enforcement, compliance depends entirely on internal culture. Competitive or financial pressure may shift that culture in ways that are invisible to outsiders.',
+     chainStep:'Enforcement',evidenceStatus:'missing',
+     actors:['Regulators','Government','Civil society'],
+     minRepair:'Subject the RSP to independent third-party audit with public reporting on compliance with stated commitments.',
+     longRepair:'Integrate RSP-equivalent requirements into legally binding regulatory frameworks with credible sanctions for non-compliance.',
+     counterarg:'Voluntary commitments may be more detailed than minimum regulatory requirements, and regulatory processes may move too slowly to match capability development.',
+     sourceIds:['rsp','metr']},
+    {rank:4,title:'No independent decision authority',
+     summary:'Deployment restriction decisions rest entirely with Anthropic leadership. No external body has power to delay or stop deployment.',
+     why:'Internal decision-makers face incentive conflicts under competitive pressure. An independent authority provides a check insulated from commercial incentives.',
+     chainStep:'Decision authority',evidenceStatus:'partial',
+     actors:['Independent safety boards','Government oversight bodies'],
+     minRepair:'Require independent review by an external body before deployment at ASL-3 or above.',
+     longRepair:'Establish a statutory AI safety authority with legal power to review and delay deployments that cross dangerous-capability thresholds.',
+     counterarg:'An independent body with veto power could be captured by incumbents or slow beneficial innovation without commensurate safety benefit.',
+     sourceIds:['rsp','nist-rmf']},
+    {rank:5,title:'No mandatory response deadline',
+     summary:'No mandatory timelines exist for completing evaluations, reaching decisions, or implementing restrictions.',
+     why:'Open-ended evaluation periods allow indefinite delay of mandatory actions under commercial pressure.',
+     chainStep:'Deadline',evidenceStatus:'missing',
+     actors:['Anthropic','Regulators'],
+     minRepair:'Specify maximum evaluation periods and decision deadlines for each ASL transition.',
+     longRepair:'Build deadline requirements into a regulatory notification framework with automatic escalation if deadlines are missed.',
+     counterarg:'Fixed deadlines may force premature decisions when additional evaluation time would produce safer outcomes.',
+     sourceIds:['rsp']}
+  ],
+  B:[
+    {rank:1,title:'No mandatory reporting timeline for weight theft',
+     summary:'Suspected model-weight theft triggers no mandatory government or public notification within a defined deadline.',
+     why:'Rapid notification is essential for law enforcement, coordinating containment, and warning potential downstream victims. Without a deadline, disclosure can be delayed indefinitely.',
+     chainStep:'Government notification',evidenceStatus:'missing',
+     actors:['Law enforcement','National security agencies','API customers'],
+     minRepair:'Require notification to government cybersecurity and national security agencies within 24 hours of a suspected breach; user notification within 72 hours.',
+     longRepair:'Develop an AI-specific incident-reporting framework with clear classification tiers, notification requirements, and public disclosure obligations.',
+     counterarg:'Premature disclosure of an unconfirmed breach may cause public alarm and alert the adversary to the scope of information available.',
+     sourceIds:['rsp','eu-ai-act']},
+    {rank:2,title:'No cross-border coordination protocol',
+     summary:'If weights are stolen by a foreign state actor, no protocol exists for coordinating with international partners.',
+     why:'Model-weight theft by a foreign state actor requires government-to-government coordination. A developer policy cannot establish this alone.',
+     chainStep:'Government notification',evidenceStatus:'missing',
+     actors:['Foreign governments','Intelligence services','Allied AI labs'],
+     minRepair:'Identify a government point of contact and establish a secure channel for reporting suspected state-actor involvement.',
+     longRepair:'Develop an international AI-incident coordination protocol through existing multilateral frameworks (e.g., OECD, G7).',
+     counterarg:'International coordination may be impractical or counterproductive in adversarial contexts.',
+     sourceIds:['rsp']},
+    {rank:3,title:'No mandatory access restriction upon suspected theft',
+     summary:'The policy does not specify mandatory access restrictions when breach extent is uncertain.',
+     why:'Without mandatory restrictions, the developer faces pressure to maintain service continuity even while the breach extent is unknown — potentially allowing adversarial access to continue.',
+     chainStep:'Containment',evidenceStatus:'missing',
+     actors:['API customers','Downstream users'],
+     minRepair:'Require immediate access suspension for high-risk use cases when breach is suspected but unconfirmed.',
+     longRepair:'Develop a tiered containment protocol with mandatory actions at each level of breach confidence.',
+     counterarg:'Mandatory access suspension may cause significant harm to legitimate users and damage trust.',
+     sourceIds:['rsp']}
+  ],
+  C:[
+    {rank:1,title:'Institutional dependency risk is outside RSP scope',
+     summary:'The RSP does not — and is not designed to — address the risk of government services becoming critically dependent on AI providers. This is a gap in the broader governance landscape.',
+     why:'Government procurement of AI services is not regulated by developer policies. As AI is integrated into critical services, concentration risk grows unmonitored.',
+     chainStep:'Dependency monitoring',evidenceStatus:'missing',
+     actors:['Government procurement agencies','Sector regulators','Treasury / finance ministries'],
+     minRepair:'Government should require AI dependency impact assessments in procurement decisions for critical services.',
+     longRepair:'Develop AI-specific critical-service continuity requirements analogous to financial sector operational resilience rules.',
+     counterarg:'Imposing continuity requirements on AI procurement may slow beneficial adoption of AI in public services.',
+     sourceIds:['rsp']},
+    {rank:2,title:'No concentration thresholds defined',
+     summary:'No policy reviewed defines a maximum acceptable level of government dependency on a single AI provider.',
+     why:'Without concentration thresholds, there is no trigger point at which a review, audit, or diversification requirement is activated.',
+     chainStep:'Concentration threshold',evidenceStatus:'missing',
+     actors:['Regulators','Government CIOs','Sector-specific regulators'],
+     minRepair:'Define concentration metrics and thresholds (e.g., share of critical services relying on a single provider) that trigger mandatory review.',
+     longRepair:'Develop sector-by-sector AI concentration risk frameworks with mandatory diversification plans.',
+     counterarg:'Concentration thresholds may be difficult to define given the heterogeneous nature of AI services across sectors.',
+     sourceIds:['rsp']}
+  ]
+};
+
+// ── Repair options ────────────────────────────────────────────────────────────
+const REPAIRS = [
+  {
+    id:'r1',type:'Trigger clause',
+    title:'Inconclusive-evaluation mandatory-pause clause',
+    failureRank:1,scenario:'A',
+    lang:`Where an evaluation conducted pursuant to this Policy produces results that are inconclusive with respect to any ASL threshold — defined as any evaluation in which the evaluating team cannot reach consensus, or in which the confidence interval spans the threshold — the Responsible Party shall:
+
+(a) immediately suspend further training and deployment of the model pending resolution;
+(b) notify [designated government body] within 72 hours of reaching an inconclusive determination;
+(c) commission independent review by an evaluation panel not employed by the Responsible Party, to be completed within [30] days; and
+(d) publish the evaluation methodology and results summary within [14] days of the independent review's completion, subject to redaction of information posing direct national-security risk.
+
+A deployment decision shall not be made while an inconclusive determination is pending.`,
+    responsibleActor:'Anthropic / frontier AI developers (with government oversight)',
+    steps:['Define quantified uncertainty thresholds triggering the clause','Establish an independent evaluation panel and funding mechanism','Create a secure government notification channel','Build a public disclosure protocol with redaction rules'],
+    tradeoffs:['May slow deployment of beneficial models','Requires establishing independent evaluation capacity that does not yet exist','Government notification before conclusions are settled may create alarm'],
+    precedentIds:['eu-ai-act','iaisr'],
+    legalReview:true
+  },
+  {
+    id:'r2',type:'Independent-review provision',
+    title:'Mandatory independent dangerous-capability evaluation',
+    failureRank:4,scenario:'A',
+    lang:`Prior to any deployment decision involving a model assessed or suspected to reach ASL-3 or above, the Responsible Party shall submit the model for evaluation by an Independent Evaluation Panel constituted as follows:
+
+(a) Panel composition: [3–5] members with expertise in AI capability assessment and relevant domain science (biosecurity, cybersecurity), no member employed by the Responsible Party or a direct competitor.
+(b) Evaluation scope: The panel shall assess whether the model's capabilities cross the designated threshold, using the Responsible Party's submitted methodology and such additional tests as the panel deems necessary.
+(c) Binding nature: A panel determination that the threshold has not been crossed is required before deployment proceeds.
+(d) Confidentiality: Panel members operate under non-disclosure agreements for proprietary model details, but the panel's determination and summary rationale shall be published within [30] days of completion.`,
+    responsibleActor:'Anthropic + independent evaluation body (to be established)',
+    steps:['Establish criteria and process for panel membership and recusal','Create a funding mechanism independent of the Responsible Party','Define information-sharing rules and redaction procedures','Establish an appeals process for disputed determinations'],
+    tradeoffs:['Requires evaluation capacity not yet available at scale','May create deployment bottlenecks','Confidentiality requirements may limit panel effectiveness'],
+    precedentIds:['nist-rmf','metr'],
+    legalReview:true
+  },
+  {
+    id:'r3',type:'Reporting requirement',
+    title:'Mandatory government notification for dangerous-capability findings',
+    failureRank:2,scenario:'A',
+    lang:`The Responsible Party shall notify [designated government authority] within [72] hours of any determination — including any inconclusive determination — that a model may have crossed an ASL-3 threshold for biological or chemical weapons assistance.
+
+Notification shall include:
+(a) the model identifier and version;
+(b) a summary of the evaluation methodology;
+(c) the capability finding and associated confidence level;
+(d) whether the model has been deployed and to whom; and
+(e) what deployment or access restrictions have been implemented or are planned.
+
+This requirement applies regardless of whether the Responsible Party disputes the finding. Failure to provide timely notification shall constitute a reportable breach for the purposes of [applicable regulatory framework].`,
+    responsibleActor:'Anthropic / frontier AI developers',
+    steps:['Identify or establish the designated government authority','Define "timely" in law and create escalation provisions','Establish a secure reporting channel','Define sanctions for failure to report'],
+    tradeoffs:['Pre-conclusion notification may cause public alarm','Government authority may lack capacity to respond usefully','Disclosure of evaluation results before settlement may expose competitive information'],
+    precedentIds:['eu-ai-act'],
+    legalReview:true
+  }
+];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentStage = 0;
+let selectedScenario = 'A';
+let selectedChainNode = null;
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
+function renderAll(){
+  renderLeftPane();
+  renderStage0(); renderStage1(); renderStage2(); renderStage3();
+  document.querySelectorAll('.panel').forEach((p,i)=>{
+    p.classList.toggle('visible', i===currentStage);
+  });
+  document.querySelectorAll('.stagebtn').forEach((b,i)=>{
+    b.classList.toggle('active', i===currentStage);
+    b.setAttribute('aria-selected', i===currentStage);
+  });
+  document.getElementById('canvas').scrollTop = 0;
+}
+
+function renderLeftPane(){
+  const lp = document.getElementById('leftpane');
+  if(currentStage===0) lp.innerHTML = leftStage0();
+  else if(currentStage===1) lp.innerHTML = leftStage1();
+  else if(currentStage===2) lp.innerHTML = leftStage2();
+  else lp.innerHTML = leftStage3();
+  // bind events
+  if(currentStage===1){
+    lp.querySelectorAll('.sc-card').forEach(c=>{
+      c.addEventListener('click',()=>{ selectedScenario=c.dataset.sc; selectedChainNode=null; renderAll(); });
+    });
+  }
+  if(currentStage===2){
+    lp.querySelectorAll('.mini-fail').forEach(mf=>{
+      mf.addEventListener('click',()=>{
+        const el = document.getElementById('fail-'+mf.dataset.rank);
+        if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.querySelector('.fail-body').classList.add('open'); }
+      });
+    });
+  }
+  if(currentStage===3){
+    const dlBtn = lp.querySelector('#dl-brief');
+    if(dlBtn) dlBtn.addEventListener('click', downloadBrief);
+  }
+}
+
+function statusLabel(s){ return {present:'Present',partial:'Partial',missing:'Missing','not-assessed':'Not assessed'}[s]||s; }
+function confLabel(c){ return {high:'High confidence',medium:'Medium confidence',low:'Low confidence'}[c]||c; }
+
+function leftStage0(){
+  return `<div class="lsection">
+    <h3>Policy under assessment</h3>
+    <div style="font-size:13.5px;font-weight:600;color:var(--navy);margin-bottom:4px;">${esc(POLICY.name)}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${esc(POLICY.issuingOrg)}</div>
+    <div style="font-size:11px;color:var(--muted);">Type: <span style="color:var(--amber);font-weight:600;">${esc(POLICY.enforcementType)}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:3px;">Sources checked through: ${esc(POLICY.sourcesCheckedThrough)}</div>
+  </div>
+  <div class="lsection">
+    <h3>Quick coverage</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${CRITERIA.map((c,i)=>{
+        const f=FINDINGS.A[i];
+        return `<span class="sbadge ${esc(f?f.status:'not-assessed')}" title="${esc(c.name)}" style="cursor:default;">${esc(c.name.split(' ')[0])}</span>`;
+      }).join('')}
+    </div>
+  </div>
+  <div class="lsection">
+    <h3>Proceed to</h3>
+    <button class="btn-primary" style="width:100%;" onclick="goStage(1)">Select scenario →</button>
+  </div>`;
+}
+
+function leftStage1(){
+  return `<div class="lsection">
+    <h3>Select a scenario</h3>
+    ${Object.values(SCENARIOS).map(s=>`
+      <button class="sc-card${selectedScenario===s.id?' selected':''}" data-sc="${esc(s.id)}" aria-pressed="${selectedScenario===s.id}">
+        <div class="sc-label">${esc(s.label)}</div>
+        <div class="sc-title">${esc(s.title)}</div>
+        <div class="sc-desc">${esc(s.desc.substring(0,90))}…</div>
+      </button>`).join('')}
+  </div>
+  <div class="lsection">
+    <button class="btn-primary" style="width:100%;" onclick="goStage(2)">View failure points →</button>
+  </div>`;
+}
+
+function leftStage2(){
+  const fs = FAILURES[selectedScenario]||[];
+  return `<div class="lsection">
+    <h3>${esc(SCENARIOS[selectedScenario].label)}: ${esc(SCENARIOS[selectedScenario].title)}</h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${fs.length} failure point${fs.length!==1?'s':''} identified</div>
+    ${fs.map(f=>`
+      <div class="mini-fail" data-rank="${f.rank}" role="button" tabindex="0">
+        <div class="mf-rank">${f.rank}</div>
+        <div class="mf-title">${esc(f.title)}</div>
+      </div>`).join('')}
+  </div>
+  <div class="lsection">
+    <button class="btn-primary" style="width:100%;" onclick="goStage(3)">Generate repairs →</button>
+  </div>`;
+}
+
+function leftStage3(){
+  const rs = REPAIRS.filter(r=>r.scenario===selectedScenario);
+  return `<div class="lsection">
+    <h3>Repair options</h3>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">${rs.length} clause${rs.length!==1?'s':''} for ${esc(SCENARIOS[selectedScenario].label)}</div>
+    ${rs.map(r=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink);">
+      <span style="color:var(--teal);font-weight:600;font-size:10px;text-transform:uppercase;">${esc(r.type)}</span><br>${esc(r.title)}
+    </div>`).join('')}
+  </div>
+  <div class="lsection">
+    <button class="btn-dl" style="width:100%;" id="dl-brief">⬇ Download one-page brief</button>
+  </div>`;
+}
+
+// ── Stage 0: Policy ───────────────────────────────────────────────────────────
+function renderStage0(){
+  const el = document.getElementById('panel-0');
+  const findings = FINDINGS.A; // rubric is policy-level, show vs scenario A as default
+  el.innerHTML = `
+    <h2 class="panel-title">${esc(POLICY.name)}</h2>
+    <p class="panel-sub">${esc(POLICY.issuingOrg)} · ${esc(POLICY.jurisdiction)}</p>
+    <div class="integrity">
+      <strong>Assessment scope:</strong> This tool evaluates whether the policy <em>contains the mechanisms</em> needed to respond to catastrophic scenarios. It does not claim to prove the policy is effective, or that its absence proves harm has occurred. "No evidence located" is not equivalent to "confirmed absent." Assessment reflects sources checked through ${esc(POLICY.sourcesCheckedThrough)}.
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;">Policy metadata</h3>
+      <div class="metagrid">
+        <div><div class="mk">Issuing organisation</div><div class="mv">${esc(POLICY.issuingOrg)}</div></div>
+        <div><div class="mk">Publication date</div><div class="mv">${esc(POLICY.publicationDate)}</div></div>
+        <div><div class="mk">Version</div><div class="mv">${esc(POLICY.version)}</div></div>
+        <div><div class="mk">Enforcement type</div><div class="mv"><span class="sbadge partial">${esc(POLICY.policyType)}</span></div></div>
+        <div><div class="mk">Jurisdiction</div><div class="mv">${esc(POLICY.jurisdiction)}</div></div>
+        <div><div class="mk">Official source</div><div class="mv"><a href="${esc(POLICY.officialUrl)}" target="_blank" rel="noopener" style="color:var(--teal);font-size:12px;">${esc(POLICY.officialUrl)}</a></div></div>
+      </div>
+      <hr class="divider">
+      <div class="mk" style="margin-bottom:4px;">Risks the policy claims to address</div>
+      <div class="taglist">${POLICY.risksAddressed.map(r=>`<span class="tag">${esc(r)}</span>`).join('')}</div>
+      <div class="mk" style="margin-bottom:4px;margin-top:10px;">Actors governed</div>
+      <div class="taglist">${POLICY.actorsGoverned.map(a=>`<span class="tag">${esc(a)}</span>`).join('')}</div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;">Assessment rubric — 10 dimensions</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Assessed against <strong>Scenario A (Dangerous biological capability)</strong> as primary reference. Click a row to expand rationale.</div>
+      <div id="rubric">
+        ${CRITERIA.map((c,i)=>{
+          const f=findings[i];
+          const st=f?f.status:'not-assessed';
+          const conf=f?f.confidence:'low';
+          return `<div class="rubric-row" id="rr-${i}">
+            <div class="rubric-n">${i+1}</div>
+            <div class="rubric-body">
+              <div class="rubric-name">${esc(c.name)}</div>
+              <div class="rubric-q">${esc(c.q)}</div>
+              <div class="rubric-meta">
+                <span class="sbadge ${esc(st)}">${esc(statusLabel(st))}</span>
+                <span class="cbadge">${esc(confLabel(conf))}</span>
+                <button class="expand-btn" data-ri="${i}" aria-expanded="false">Show rationale ▾</button>
+                <button class="report-link" onclick="reportError('${esc(c.id)}')">Report classification error</button>
+              </div>
+              <div class="rubric-rationale" id="rat-${i}">
+                ${f?`<p style="margin:0 0 6px;">${esc(f.rationale)}</p>
+                ${f.missingInfo.length?`<div style="font-size:11px;color:var(--muted);">Missing information: ${f.missingInfo.map(m=>`<em>${esc(m)}</em>`).join(', ')}</div>`:''}
+                ${f.sourceIds.length?`<div style="margin-top:6px;">${f.sourceIds.map(sid=>`<button class="spill" onclick="showSource('${esc(sid)}')">${esc(SOURCES[sid]?SOURCES[sid].title:'Unknown')}</button>`).join('')}</div>`:''}
+                `:'No assessment available.'}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  // bind expand buttons
+  el.querySelectorAll('.expand-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const i=btn.dataset.ri;
+      const rat=document.getElementById('rat-'+i);
+      const open=rat.classList.toggle('open');
+      btn.setAttribute('aria-expanded',open);
+      btn.textContent=open?'Hide rationale ▴':'Show rationale ▾';
+    });
+  });
+}
+
+// ── Stage 1: Scenario ─────────────────────────────────────────────────────────
+function renderStage1(){
+  const el = document.getElementById('panel-1');
+  const sc = SCENARIOS[selectedScenario];
+  const nodes = CHAIN[selectedScenario]||[];
+  el.innerHTML = `
+    <h2 class="panel-title">${esc(sc.label)}: ${esc(sc.title)}</h2>
+    <p class="panel-sub">${esc(sc.desc)}</p>
+    ${selectedScenario==='C'?`<div class="integrity"><strong>Note on Scenario C:</strong> Critical institutional dependency is largely outside the scope of a developer's responsible-scaling policy. Most nodes below are rated "Not assessed" because the relevant governance gaps exist in government procurement and sector regulation, not in developer policies like the RSP. This does not indicate the RSP fails on this scenario — it indicates the scenario requires a different type of policy instrument.</div>`:''}
+    <div class="card">
+      <h3 style="margin:0 0 8px;">Response chain</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Click any node to see the assessment, evidence, and what is missing.</div>
+      <div class="chain-legend">
+        <span><span class="legend-dot" style="background:var(--green-bg);border:2px solid var(--green);display:inline-block;width:10px;height:10px;border-radius:50%;"></span>Specified and operational</span>
+        <span><span class="legend-dot" style="background:var(--amber-bg);border:2px solid var(--amber);display:inline-block;width:10px;height:10px;border-radius:50%;"></span>Present but incomplete</span>
+        <span><span class="legend-dot" style="background:var(--red-bg);border:2px solid var(--red);display:inline-block;width:10px;height:10px;border-radius:50%;"></span>Missing</span>
+        <span><span class="legend-dot" style="background:var(--gray-bg);border:2px solid var(--gray);display:inline-block;width:10px;height:10px;border-radius:50%;"></span>Not assessed</span>
+      </div>
+      <div class="chain-wrap">
+        <div class="chain" id="chain-nodes">
+          ${nodes.map((n,i)=>`
+            <div class="chain-node${selectedChainNode===n.id?' sel':''}" data-nid="${esc(n.id)}" role="button" tabindex="0" aria-pressed="${selectedChainNode===n.id}" aria-label="${esc(n.label)}: ${esc(n.assessment)}">
+              <div class="chain-node-inner">
+                <div class="chain-dot ${esc(n.status)}">${esc(n.icon)}</div>
+                <div class="chain-label">${esc(n.label)}</div>
+              </div>
+            </div>
+            ${i<nodes.length-1?'<div class="chain-conn" aria-hidden="true"></div>':''}`).join('')}
+        </div>
+      </div>
+      <div id="chain-detail-area"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin:0 0 6px;">Scenario test questions</h3>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.6;">
+        ${selectedScenario==='A'?`Does the policy specify: the capability threshold · who evaluates · who receives results · who has authority to delay · what happens when evidence is inconclusive · whether action is mandatory · whether regulators are notified · what happens if the developer refuses?`:''}
+        ${selectedScenario==='B'?`Does the policy specify: reporting deadlines · security-incident classification · government notification · cross-border coordination · containment responsibilities · deployment restrictions · public disclosure · post-incident review?`:''}
+        ${selectedScenario==='C'?`Does the policy address: dependency monitoring · concentration thresholds · human fallback capacity · alternative providers · continuity plans · procurement safeguards · data portability · recovery exercises?`:''}
+      </div>
+    </div>`;
+  // bind chain node clicks
+  el.querySelectorAll('.chain-node').forEach(n=>{
+    n.addEventListener('click',()=>{ selectedChainNode=n.dataset.nid; renderStage1(); });
+    n.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ selectedChainNode=n.dataset.nid; renderStage1(); }});
+  });
+  // render selected node detail
+  if(selectedChainNode){
+    const node=nodes.find(n=>n.id===selectedChainNode);
+    if(node) renderChainDetail(node, document.getElementById('chain-detail-area'));
+  }
+}
+
+function renderChainDetail(node, container){
+  const src = SOURCES[node.sourceId];
+  container.innerHTML = `
+    <div class="chain-detail">
+      <div class="chain-dh">
+        <span class="chain-dot ${esc(node.status)}" style="width:36px;height:36px;font-size:14px;flex-shrink:0;">${esc(node.icon)}</span>
+        <h4>${esc(node.label)}</h4>
+        <span class="sbadge ${esc(node.status==='green'?'present':node.status==='amber'?'partial':node.status==='red'?'missing':'not-assessed')}">${esc(node.assessment)}</span>
+        <span class="cbadge">${esc(confLabel(node.confidence))}</span>
+        <button class="report-link" onclick="reportError('${esc(node.id)}')">Report error</button>
+      </div>
+      <div class="ds"><div class="ds-lbl">Assessment rationale</div><div class="ds-val">${esc(node.rationale)}</div></div>
+      ${node.missingInfo&&node.missingInfo.length?`<div class="ds"><div class="ds-lbl">What is missing</div><ul class="alist">${node.missingInfo.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+      ${node.assumptions&&node.assumptions.length?`<div class="ds"><div class="ds-lbl">Assumptions</div><ul class="alist">${node.assumptions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul></div>`:''}
+      ${src?`<div class="evblock">
+        <div class="ev-lbl">Source · ${esc(src.excerptType||'Paraphrase')}</div>
+        <div class="ev-text">${esc(src.excerpt)}</div>
+        <div class="ev-src">${esc(src.title)} · ${esc(src.issuingBody)} · ${esc(src.publicationDate)} ·
+          <button class="spill" onclick="showSource('${esc(node.sourceId)}')">View full source</button>
+        </div>
+      </div>`:''}
+    </div>`;
+}
+
+// ── Stage 2: Failure points ───────────────────────────────────────────────────
+function renderStage2(){
+  const el = document.getElementById('panel-2');
+  const sc = SCENARIOS[selectedScenario];
+  const fs = FAILURES[selectedScenario]||[];
+  el.innerHTML = `
+    <h2 class="panel-title">Failure points — ${esc(sc.label)}: ${esc(sc.title)}</h2>
+    <p class="panel-sub">Ranked by consequence, urgency, and whether the gap blocks other controls. Confidence and evidence status are shown for each finding.</p>
+    <div class="integrity"><strong>Ranking basis:</strong> Consequence if absent · urgency · whether gap blocks other controls · confidence in assessment. Rankings reflect structured analysis of the policy text and comparator frameworks, not model-generated intuition alone.</div>
+    ${fs.length===0?`<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">No failure points identified for this scenario against the selected policy.</div>`:''}
+    ${fs.map(f=>`
+      <div class="fail-card" id="fail-${f.rank}" onclick="toggleFail(${f.rank})" role="button" tabindex="0" aria-expanded="false">
+        <div class="fail-header">
+          <div class="fail-rank">${f.rank}</div>
+          <div style="flex:1;">
+            <div class="fail-title">${esc(f.title)}</div>
+            <div class="fail-summary">${esc(f.summary)}</div>
+            <div class="fail-meta">
+              <span class="chain-step-tag">Breaks: ${esc(f.chainStep)}</span>
+              <span class="sbadge ${esc(f.evidenceStatus)}">${esc(statusLabel(f.evidenceStatus))}</span>
+              ${f.sourceIds.map(sid=>`<button class="spill" onclick="event.stopPropagation();showSource('${esc(sid)}')">${esc(SOURCES[sid]?SOURCES[sid].title.substring(0,30)+'…':'Source')}</button>`).join('')}
+            </div>
+          </div>
+          <span style="color:var(--muted);font-size:16px;flex-shrink:0;">›</span>
+        </div>
+        <div class="fail-body" id="fb-${f.rank}">
+          <div class="fail-sec"><div class="fail-sec-lbl">Why it matters in this scenario</div><div class="fail-sec-val">${esc(f.why)}</div></div>
+          <div class="fail-sec"><div class="fail-sec-lbl">Affected actors</div><div class="actor-list">${f.actors.map(a=>`<span class="actor-tag">${esc(a)}</span>`).join('')}</div></div>
+          <div class="fail-sec"><div class="fail-sec-lbl">Minimum viable repair</div><div class="fail-sec-val">${esc(f.minRepair)}</div></div>
+          <div class="fail-sec"><div class="fail-sec-lbl">Longer-term institutional repair</div><div class="fail-sec-val">${esc(f.longRepair)}</div></div>
+          <div class="counterarg"><strong>Counterargument:</strong> ${esc(f.counterarg)}</div>
+        </div>
+      </div>`).join('')}`;
+  el.querySelectorAll('.fail-card').forEach(card=>{
+    card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') card.click(); });
+  });
+}
+
+function toggleFail(rank){
+  const fb = document.getElementById('fb-'+rank);
+  const card = document.getElementById('fail-'+rank);
+  if(!fb||!card) return;
+  const open = fb.classList.toggle('open');
+  card.setAttribute('aria-expanded', open);
+}
+
+// ── Stage 3: Repair plan ──────────────────────────────────────────────────────
+function renderStage3(){
+  const el = document.getElementById('panel-3');
+  const sc = SCENARIOS[selectedScenario];
+  const rs = REPAIRS.filter(r=>r.scenario===selectedScenario);
+  el.innerHTML = `
+    <h2 class="panel-title">Repair plan — ${esc(sc.label)}: ${esc(sc.title)}</h2>
+    <p class="panel-sub">Targeted clauses addressing specific failure points. Edit the language in each card before copying.</p>
+    <div class="legal-notice">
+      <strong>Illustrative policy language — not legal advice.</strong> Verify all clauses against the applicable jurisdiction and institutional authority before use. Legal review is required for all provisions marked below. These clauses are model-generated starting points, not authoritative policy text.
+    </div>
+    ${rs.length===0?`<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">No repair options generated for this scenario. Select Scenario A to see full repair clauses.</div>`:''}
+    ${rs.map((r,i)=>{
+      const failureNum = r.failureRank;
+      const precs = r.precedentIds.map(pid=>`<button class="spill" onclick="showSource('${esc(pid)}')">${esc(SOURCES[pid]?SOURCES[pid].title.substring(0,28)+'…':'Source')}</button>`).join('');
+      return `<div class="repair-card">
+        <div class="repair-type">${esc(r.type)}</div>
+        <div class="repair-title">${esc(r.title)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+          Repairs failure point #${failureNum}: ${esc((FAILURES[selectedScenario]||[]).find(f=>f.rank===failureNum)||{}).title||''} ·
+          ${r.legalReview?'<span style="color:var(--red);font-weight:600;">Legal review required</span>':'<span style="color:var(--green);">Legal review recommended</span>'}
+        </div>
+        <label for="repair-lang-${i}" style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Illustrative clause — editable</label>
+        <textarea class="repair-lang" id="repair-lang-${i}" aria-label="Editable policy clause for ${esc(r.title)}">${esc(r.lang)}</textarea>
+        <div class="repair-footer">
+          <div style="margin-bottom:6px;"><span style="color:var(--muted);">Responsible actor:</span> ${esc(r.responsibleActor)}</div>
+          <div style="margin-bottom:6px;"><span style="color:var(--muted);">Implementation steps:</span> ${r.steps.map(s=>`<em>${esc(s)}</em>`).join(' · ')}</div>
+          <div style="margin-bottom:6px;"><span style="color:var(--muted);">Tradeoffs:</span> ${r.tradeoffs.map(t=>`<em>${esc(t)}</em>`).join(' · ')}</div>
+          <div>Precedents: ${precs}</div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ── Source modal ──────────────────────────────────────────────────────────────
+function showSource(id){
+  const src = SOURCES[id];
+  const mb = document.getElementById('modal-body');
+  if(!src){ mb.textContent='Source not found.'; } else {
+    mb.innerHTML = `
+      <h3>${esc(src.title)}</h3>
+      <div class="modal-row"><span class="modal-key">Issuing body</span><span class="modal-val">${esc(src.issuingBody)}</span></div>
+      <div class="modal-row"><span class="modal-key">Jurisdiction</span><span class="modal-val">${esc(src.jurisdiction)}</span></div>
+      <div class="modal-row"><span class="modal-key">Publication date</span><span class="modal-val">${esc(src.publicationDate)}</span></div>
+      <div class="modal-row"><span class="modal-key">Version</span><span class="modal-val">${esc(src.version)}</span></div>
+      <div class="modal-row"><span class="modal-key">Source type</span><span class="modal-val">${esc(src.sourceType)}</span></div>
+      <div class="modal-row"><span class="modal-key">Primary source</span><span class="modal-val">${src.primarySource?'Yes':'No (secondary assessment)'}</span></div>
+      <div class="modal-row"><span class="modal-key">Accessed</span><span class="modal-val">${esc(src.accessedDate)}</span></div>
+      <div class="modal-row"><span class="modal-key">Verified</span><span class="modal-val">${src.verified?'Yes':'<span style="color:var(--amber);">Unverified — treat with caution</span>'}</span></div>
+      <div class="modal-row"><span class="modal-key">Official URL</span><span class="modal-val"><a href="${esc(src.officialUrl)}" target="_blank" rel="noopener" style="color:var(--teal);word-break:break-all;">${esc(src.officialUrl)}</a></span></div>
+      ${src.locator&&src.locator.page?`<div class="modal-row"><span class="modal-key">Page</span><span class="modal-val">${esc(String(src.locator.page))}</span></div>`:''}
+      ${src.locator&&src.locator.section?`<div class="modal-row"><span class="modal-key">Section</span><span class="modal-val">${esc(src.locator.section)}</span></div>`:''}
+      <div class="modal-excerpt">
+        <div class="excerpt-type">${esc(src.excerptType||'Paraphrase')}</div>
+        <div style="font-style:italic;color:var(--ink);line-height:1.5;font-size:12.5px;">${esc(src.excerpt)}</div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+        <strong>Relevance:</strong> ${esc(src.relevance)}<br>
+        <strong>Limitations:</strong> ${esc(src.limitations)}
+      </div>`;
+  }
+  document.getElementById('overlay').classList.remove('hidden');
+}
+
+// ── Download brief ────────────────────────────────────────────────────────────
+function downloadBrief(){
+  const sc = SCENARIOS[selectedScenario];
+  const fs = FAILURES[selectedScenario]||[];
+  const rs = REPAIRS.filter(r=>r.scenario===selectedScenario);
+  const chainNodes = CHAIN[selectedScenario]||[];
+  const findings = FINDINGS[selectedScenario]||[];
+
+  let md = `# AI Policy Stress Test Report\n\n`;
+  md += `**Generated:** ${new Date().toISOString().split('T')[0]}\n\n`;
+  md += `---\n\n`;
+  md += `## 1. Policy assessed\n\n`;
+  md += `**Name:** ${POLICY.name}\n`;
+  md += `**Issuing organisation:** ${POLICY.issuingOrg}\n`;
+  md += `**Jurisdiction:** ${POLICY.jurisdiction}\n`;
+  md += `**Version:** ${POLICY.version}\n`;
+  md += `**Type:** ${POLICY.policyType}\n`;
+  md += `**Official source:** ${POLICY.officialUrl}\n`;
+  md += `**Sources checked through:** ${POLICY.sourcesCheckedThrough}\n\n`;
+
+  md += `## 2. Scenario\n\n`;
+  md += `**${sc.label}: ${sc.title}**\n\n${sc.desc}\n\n`;
+
+  md += `## 3. Response-chain results\n\n`;
+  chainNodes.forEach(n=>{
+    const status = {green:'✅ Specified',amber:'⚠️ Partial',red:'❌ Missing',gray:'◻ Not assessed'}[n.status]||n.status;
+    md += `### ${n.label}\n**Status:** ${status}\n**Assessment:** ${n.assessment}\n${n.rationale}\n\n`;
+    if(n.missingInfo&&n.missingInfo.length) md += `**Missing:** ${n.missingInfo.join(' · ')}\n\n`;
+  });
+
+  md += `## 4. Critical failure points\n\n`;
+  fs.forEach(f=>{
+    md += `### ${f.rank}. ${f.title}\n${f.summary}\n\n`;
+    md += `**Why it matters:** ${f.why}\n\n`;
+    md += `**Breaks response chain at:** ${f.chainStep}\n\n`;
+    md += `**Minimum repair:** ${f.minRepair}\n\n`;
+    md += `**Counterargument:** ${f.counterarg}\n\n`;
+  });
+
+  md += `## 5. Repair options\n\n`;
+  if(rs.length===0) md += `No repair clauses generated for this scenario.\n\n`;
+  rs.forEach(r=>{
+    md += `### ${r.type}: ${r.title}\n\n`;
+    md += `> **Illustrative language — not legal advice. Legal review required.**\n\n`;
+    md += r.lang+'\n\n';
+    md += `**Responsible actor:** ${r.responsibleActor}\n\n`;
+    md += `**Tradeoffs:** ${r.tradeoffs.join('; ')}\n\n`;
+  });
+
+  md += `## 6. Sources\n\n`;
+  Object.values(SOURCES).forEach(s=>{
+    md += `- **${s.title}** · ${s.issuingBody} · ${s.publicationDate} · [${s.officialUrl}](${s.officialUrl})\n`;
+    md += `  ${s.excerptType||'Paraphrase'}: *${s.excerpt.substring(0,200)}*\n`;
+    md += `  Limitations: ${s.limitations}\n\n`;
+  });
+
+  md += `## 7. Assumptions and limitations\n\n`;
+  md += `- This assessment is based on the public version of the policy and may not reflect internal procedures or commitments.\n`;
+  md += `- "No evidence located" is not equivalent to "confirmed absent." Internal policies may address gaps not visible in the public document.\n`;
+  md += `- Assessment confidence varies by criterion; low-confidence findings should be treated as hypotheses, not conclusions.\n`;
+  md += `- Repair clauses are illustrative starting points generated by an AI tool. They require legal review and adaptation to the applicable jurisdiction and institutional authority.\n`;
+  md += `- This tool does not produce an overall safety score. The absence of a score is intentional.\n\n`;
+
+  const findings_assumptions = findings.flatMap(f=>f.assumptions||[]).filter(Boolean);
+  if(findings_assumptions.length){
+    md += `**Assessment-specific assumptions:**\n`;
+    [...new Set(findings_assumptions)].forEach(a=>{ md += `- ${a}\n`; });
+  }
+
+  const blob = new Blob([md], {type:'text/markdown'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `stress-test-brief-${selectedScenario.toLowerCase()}-${new Date().toISOString().split('T')[0]}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Report error ──────────────────────────────────────────────────────────────
+function reportError(id){
+  const msg = `To report a classification error for "${id}", please email feedback with:\n1. The criterion or node ID: ${id}\n2. Your proposed status and evidence\n3. A source you can point to\n\nThis prototype is a research tool — corrections improve the assessment for everyone.`;
+  alert(msg);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goStage(n){
+  currentStage = n;
+  renderAll();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.stagebtn').forEach((btn,i)=>{
+  btn.addEventListener('click',()=>goStage(i));
+});
+document.getElementById('modal-close').addEventListener('click',()=>{
+  document.getElementById('overlay').classList.add('hidden');
+});
+document.getElementById('overlay').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) document.getElementById('overlay').classList.add('hidden');
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') document.getElementById('overlay').classList.add('hidden');
+});
+
+// Initial render
+renderAll();
+</script>
+</body>
+</html>
