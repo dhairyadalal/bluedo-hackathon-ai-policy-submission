@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Policy Copilot — concept mockup</title>
+<title>Aster — AI Policy Copilot</title>
 <style>
   :root{
     --navy:#0f1f3d; --navy-2:#16294f; --teal:#0f766e; --teal-light:#e6f5f3;
@@ -141,13 +141,115 @@
   .sechead h3{margin:0;font-size:15px;}
   .toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
   .secblock textarea{width:100%;min-height:160px;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13.5px;line-height:1.6;font-family:inherit;resize:vertical;}
+
+  /* Aster editorial system */
+  :root{
+    --navy:#302d29; --navy-2:#443b36; --teal:#647b66; --teal-light:#e9eee5;
+    --ink:#302d29; --muted:#716b64; --line:#d9d0c4; --bg:#f4efe7; --card:#fffdf9;
+    --amber:#9b7135; --amber-bg:#f4ead3; --red:#db6655; --red-bg:#f8e8e3; --green:#5f745f; --green-bg:#e7eee3;
+    --coral:#df6756; --sage:#a9b4a3; --cream:#f4efe7; --dark:#2f2b27;
+  }
+  body{background:var(--cream);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  button,input,select,textarea{font:inherit;}
+  .topbar{background:#fbf8f2;color:var(--ink);padding:18px 30px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;}
+  .brand-lockup{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .brand-mark{width:38px;height:38px;border-radius:50%;background:var(--dark);color:#fff;display:grid;place-items:center;font-family:Georgia,serif;font-size:22px;box-shadow:inset 0 0 0 6px #403b36;}
+  .topbar h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:24px;font-weight:500;letter-spacing:-.02em;white-space:nowrap;}
+  .topbar h1 span{font-family:Inter,-apple-system,sans-serif;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0;}
+  .topbar p{color:var(--muted);font-size:12px;text-align:right;max-width:420px;line-height:1.45;}
+  .agent-status{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;color:var(--muted);font-size:11px;white-space:nowrap;}
+  .agent-status i{width:7px;height:7px;border-radius:50%;background:#79a277;box-shadow:0 0 0 4px rgba(121,162,119,.14);}
+  .stagebar{background:#fbf8f2;padding:0 30px;gap:8px;}
+  .stage{padding:13px 15px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:700;}
+  .stage.active{color:var(--coral);border-bottom-color:var(--coral);}
+  .stage .num{background:#ebe4da;}
+  .stage.active .num,.stage.done .num{background:var(--coral);}
+  .layout{min-height:calc(100vh - 114px);}
+  .chatpane{width:330px;background:#fbf8f2;border-color:var(--line);}
+  .chatlog{max-height:calc(100vh - 270px);}
+  .msg.agent .bubble{background:#ebe7de;border:1px solid #ded5c9;}
+  .msg.agent .who{color:var(--coral);text-transform:uppercase;letter-spacing:.08em;font-weight:700;}
+  .msg.user .bubble,.inputrow button{background:var(--dark);}
+  .chip{border-color:var(--line);background:#fffdf9;color:var(--ink);border-radius:12px;}
+  .chip:hover{background:var(--red-bg);border-color:#e6aa9e;}
+  .canvas{padding:30px 34px;max-height:calc(100vh - 114px);}
+  h2.panel-title,.landscape-title,.scenario-title{font-family:Georgia,"Times New Roman",serif;color:var(--ink);font-weight:500;letter-spacing:-.035em;}
+  h2.panel-title{font-size:25px;}
+  .card,.secblock,.kcard,.kcol{border-color:var(--line);box-shadow:0 1px 0 rgba(47,43,39,.03);}
+
+  /* Landscape chart and comparison panel */
+  #panel-1{margin:-30px -34px;padding:34px;background:#f6f1e9;min-height:calc(100vh - 114px);}
+  .landscape-eyebrow{font-size:10px;color:var(--coral);text-transform:uppercase;letter-spacing:.16em;font-weight:800;margin-bottom:12px;}
+  .landscape-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:25px;}
+  .landscape-title{font-size:clamp(34px,4vw,61px);line-height:.96;margin:0 0 12px;max-width:780px;}
+  .landscape-head p{margin:0;color:var(--muted);font-size:13px;}
+  .landscape-mode{display:flex;background:#e9e2d8;border:1px solid var(--line);border-radius:999px;padding:4px;white-space:nowrap;}
+  .mode-btn{border:0;background:transparent;color:var(--muted);padding:9px 13px;border-radius:999px;font-size:11px;font-weight:700;cursor:pointer;}
+  .mode-btn.active{background:#fff;color:var(--ink);box-shadow:0 1px 6px rgba(47,43,39,.08);}
+  .landscape-view{display:none;}
+  .landscape-view.active{display:block;animation:fade .25s ease;}
+  .landscape-grid{display:grid;grid-template-columns:minmax(470px,1.8fr) minmax(270px,.8fr);gap:18px;align-items:stretch;}
+  .policy-chart{position:relative;min-height:465px;border:1px solid var(--line);border-radius:24px;overflow:hidden;background-color:#dedbd2;background-image:linear-gradient(rgba(74,67,59,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(74,67,59,.11) 1px,transparent 1px);background-size:72px 72px;}
+  .policy-blob{position:absolute;background:rgba(145,159,139,.38);filter:saturate(.75);}
+  .blob-a{width:33%;height:29%;left:8%;top:19%;border-radius:55% 45% 49% 51% / 46% 48% 52% 54%;transform:rotate(-12deg);}
+  .blob-b{width:17%;height:21%;left:47%;top:20%;border-radius:48% 52% 42% 58% / 55% 43% 57% 45%;}
+  .blob-c{width:36%;height:36%;right:7%;top:20%;border-radius:53% 47% 44% 56% / 42% 50% 50% 58%;transform:rotate(9deg);}
+  .blob-d{width:18%;height:34%;left:30%;bottom:9%;border-radius:51% 49% 58% 42% / 38% 48% 52% 62%;transform:rotate(-17deg);}
+  .blob-e{width:18%;height:31%;left:52%;bottom:14%;border-radius:53% 47% 57% 43% / 43% 54% 46% 57%;transform:rotate(16deg);}
+  .map-point{position:absolute;z-index:2;border:0;background:transparent;padding:0;cursor:pointer;color:var(--ink);}
+  .map-point::before{content:"";display:block;width:13px;height:13px;border-radius:50%;background:#718672;border:5px solid #f7f3ec;box-shadow:0 1px 5px rgba(47,43,39,.22);margin:auto;transition:.18s ease;}
+  .map-point span{display:block;background:#fffdf9;border:1px solid rgba(217,208,196,.8);border-radius:8px;padding:5px 8px;margin-top:4px;font-size:10px;font-weight:700;box-shadow:0 3px 9px rgba(47,43,39,.08);white-space:nowrap;}
+  .map-point:hover::before,.map-point.selected::before{background:var(--coral);transform:scale(1.14);}
+  .map-point.dim{opacity:.2;}
+  .mp-canada{left:15%;top:24%;}.mp-us{left:21%;top:39%;}.mp-portugal{left:47%;top:22%;}.mp-spain{left:53%;top:33%;}.mp-uk{left:54%;top:12%;}.mp-austria{left:61%;top:25%;}.mp-france{left:67%;top:42%;}.mp-israel{left:75%;top:53%;}.mp-oecd{left:57%;top:64%;}
+  .chart-legend{position:absolute;left:20px;bottom:18px;z-index:2;background:#fffdf9;border-radius:12px;padding:9px 12px;font-size:10px;color:var(--muted);display:flex;gap:14px;box-shadow:0 3px 10px rgba(47,43,39,.07);}
+  .chart-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:#718672;}.chart-legend i.selected{background:var(--coral);}
+  .compare-panel{background:#fffdf9;border:1px solid var(--line);border-radius:24px;padding:22px;display:flex;flex-direction:column;}
+  .compare-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:var(--coral);font-weight:800;}
+  .compare-head span:last-child{color:var(--ink);letter-spacing:0;text-transform:none;}
+  .compare-row{display:grid;grid-template-columns:38px 1fr auto;gap:11px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:9px;cursor:pointer;background:#fff;transition:.16s ease;}
+  .compare-row:hover{transform:translateX(-2px);border-color:#e4aa9e;}
+  .compare-row.active{background:#f9ebe7;border-color:#df9a8d;}
+  .compare-check{width:32px;height:32px;border-radius:10px;background:#eee9e1;display:grid;place-items:center;font-weight:700;}
+  .compare-row.active .compare-check{background:var(--coral);color:#fff;}
+  .compare-row strong{display:block;font-size:12px;}.compare-row small{display:block;color:var(--muted);font-size:9px;margin-top:3px;}.compare-row em{font-style:normal;color:var(--muted);font-size:9px;}
+  .detail{background:#eeeae1;border:1px solid var(--line);margin-top:auto;max-height:132px;overflow:auto;}
+  .evidence-banner{margin-top:18px;background:#fffdf9;border:1px solid var(--line);border-radius:20px;padding:18px 22px;display:grid;grid-template-columns:55px 1fr auto;gap:18px;align-items:center;}
+  .evidence-icon{width:52px;height:52px;border-radius:14px;background:#ede3cb;display:grid;place-items:center;font-family:Georgia,serif;font-size:24px;color:#765f38;}.evidence-banner .kicker{color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-size:9px;font-weight:700;}.evidence-banner strong{font-family:Georgia,serif;font-size:22px;font-weight:500;}.evidence-banner .arrow{font-size:29px;color:var(--coral);}
+
+  /* Interactive scenario laboratory */
+  .scenario-lab{border-top:1px solid var(--line);padding-top:8px;}
+  .scenario-head{display:flex;justify-content:space-between;align-items:flex-start;margin:15px 0 20px;}
+  .scenario-title{font-size:42px;line-height:1;margin:0 0 9px;}.scenario-head p{margin:0;color:var(--muted);font-size:12px;}.sim-badge{border:1px solid var(--line);border-radius:99px;padding:8px 12px;color:var(--muted);font-size:10px;}
+  .scenario-layout{display:grid;grid-template-columns:240px minmax(420px,1fr) 270px;gap:16px;}
+  .scenario-picker,.policies-required{background:#eee9e1;border:1px solid var(--line);border-radius:20px;padding:18px;}
+  .scenario-label{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--coral);font-weight:800;margin-bottom:14px;}
+  .scenario-option{border:1px solid transparent;border-radius:12px;padding:13px 10px;margin-bottom:7px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:9px;}
+  .scenario-option::before{content:"";width:8px;height:8px;border-radius:50%;background:#beb7ae;flex:0 0 auto;}.scenario-option::after{content:"›";margin-left:auto;font-size:20px;color:#948d84;}.scenario-option.active{background:#fff;border-color:#e4aa9e;}.scenario-option.active::before{background:var(--coral);}
+  .scenario-main{min-width:0;}
+  .scenario-viz{height:250px;border-radius:20px;border:1px solid #4b453f;overflow:hidden;position:relative;background-color:#312e2a;background-image:linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px),radial-gradient(circle at 15% 30%,rgba(217,102,85,.18),transparent 34%);background-size:52px 52px,52px 52px,100% 100%;}
+  .risk-line{position:absolute;height:1px;background:#7d7771;transform-origin:left center;}.line-1{width:37%;left:22%;top:48%;transform:rotate(-13deg);}.line-2{width:35%;left:56%;top:48%;transform:rotate(17deg);}
+  .risk-node{position:absolute;border:1px solid #6d6660;background:#514c48;color:#fff;border-radius:13px;padding:14px 16px;width:145px;}.risk-node small{display:block;color:#c5beb6;font-size:9px;margin-bottom:6px;}.risk-node strong{font-family:Georgia,serif;font-size:19px;line-height:1.05;}.risk-node.system{left:4%;top:36%;}.risk-node.exposure{left:40%;top:18%;border-color:#cfb56b;background:#514a39;}.risk-node.people{right:3%;top:50%;}
+  .agent-pulse{position:absolute;left:50%;bottom:22px;display:flex;gap:5px;align-items:end}.agent-pulse i{width:7px;border-radius:6px;background:var(--coral);animation:pulsebar 1.2s ease-in-out infinite}.agent-pulse i:nth-child(1){height:15px}.agent-pulse i:nth-child(2){height:29px;animation-delay:.15s}.agent-pulse i:nth-child(3){height:20px;animation-delay:.3s}@keyframes pulsebar{50%{opacity:.35;transform:scaleY(.65)}}
+  .scenario-copy{padding:17px 4px 0;}.scenario-copy .scenario-label{margin-bottom:8px}.scenario-copy h3{font-family:Georgia,serif;font-weight:500;font-size:26px;margin:0 0 7px}.scenario-copy p{color:var(--muted);font-size:11px;line-height:1.5;margin:0 0 12px}.policy-toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.policy-toggle{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff;cursor:pointer;font-size:10px;text-align:left}.policy-toggle.on{background:#e7eee3;border-color:#b5c5b0}.policy-toggle span{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:#eee9e1;margin-right:7px}.policy-toggle.on span{background:#647b66;color:#fff}
+  .measure{background:#fff;border-radius:12px;padding:11px;margin-bottom:9px;font-size:10px;display:flex;align-items:center;gap:9px}.measure b{width:28px;height:28px;border-radius:50%;background:#f4dfda;color:var(--coral);display:grid;place-items:center}.measure span{margin-left:auto;color:var(--coral);font-size:20px}.exposure-meter{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}.meter-copy{display:flex;justify-content:space-between;font-size:9px;margin-bottom:8px}.meter{height:7px;background:#d6cfc6;border-radius:8px;overflow:hidden}.meter-fill{height:100%;width:45%;background:var(--coral);border-radius:8px;transition:width .25s ease}
+
+  /* Floating Aster agent presence */
+  .floating-agent{position:fixed;right:24px;bottom:22px;z-index:20;display:flex;align-items:center;gap:10px;background:var(--dark);color:#fff;border:1px solid #5c554e;border-radius:18px;padding:10px 13px 10px 10px;box-shadow:0 15px 40px rgba(47,43,39,.28);cursor:pointer;}
+  .floating-orb{width:38px;height:38px;border-radius:14px;background:radial-gradient(circle at 35% 28%,#ffb09f 0 7%,#df6756 8% 34%,#7f3c35 67%,#2f2b27 68%);position:relative;box-shadow:0 0 0 4px rgba(223,103,86,.13)}
+  .floating-orb::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(255,176,159,.42);border-radius:18px;animation:agentOrbit 3s linear infinite}@keyframes agentOrbit{50%{transform:rotate(180deg) scale(1.08)}100%{transform:rotate(360deg)}}
+  .floating-agent strong{display:block;font-family:Georgia,serif;font-weight:500}.floating-agent small{display:block;color:#cfc7be;font-size:9px;margin-top:2px}.floating-agent .spark{color:#ff9a86;margin-left:5px}
+
+  @media(max-width:1050px){.chatpane{width:285px}.landscape-grid,.scenario-layout{grid-template-columns:1fr}.scenario-picker{display:grid;grid-template-columns:1fr 1fr;gap:7px}.scenario-label{grid-column:1/-1}.policies-required{display:none}.policy-chart{min-height:420px}}
+  @media(max-width:760px){.topbar p,.agent-status{display:none}.stagebar{overflow:auto}.layout{display:block}.chatpane{width:100%;max-height:320px}.canvas{max-height:none;padding:22px}.landscape-head{display:block}.landscape-mode{margin-top:18px;width:max-content}.landscape-grid{grid-template-columns:1fr}.policy-chart{min-height:390px}.compare-panel{min-height:320px}.evidence-banner{grid-template-columns:48px 1fr}.evidence-banner .arrow{display:none}.floating-agent{right:14px;bottom:14px}.kanban{overflow:auto}}
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>AI Policy Copilot <span class="badge">concept mockup</span></h1>
-  <p>Conversation-driven prototype. Scripted tabs show governance and institutions (hardcoded). The "Analyze live from the pipeline" chips call a real RAG backend seeded with Portugal's research, investment, and commercialisation pillar.</p>
+  <div class="brand-lockup"><div class="brand-mark">A</div><h1>Aster <span>— AI Policy Copilot</span></h1></div>
+  <div class="agent-status"><i></i>Aster is watching the policy landscape</div>
+  <p>Evidence-grounded research, comparison, scenario testing, and policy drafting for national AI strategy.</p>
 </div>
 
 <div class="stagebar" id="stagebar">
@@ -161,7 +263,7 @@
   <div class="chatpane">
     <div class="chatlog" id="chatlog">
       <div class="msg agent">
-        <div class="who">Copilot</div>
+        <div class="who">Aster · Policy agent</div>
         <div class="bubble">Hi, I'm set up for Portugal, governance and institutions. What do you want to look at first?</div>
       </div>
     </div>
@@ -211,46 +313,103 @@
     </div>
 
     <div class="panel" id="panel-1">
-      <h2 class="panel-title">Global policy landscape</h2>
-      <p class="panel-sub">9 countries and multilateral bodies, 12 case studies referenced for this pillar. Filter by topic, click a node for detail.</p>
-      <div class="filterbar">
-        <label for="topicFilter" style="color:var(--muted);">Filter by topic</label>
-        <select id="topicFilter" onchange="filterMap(this.value)">
-          <option value="all">All topics</option>
-          <option value="implementation">Implementation mechanisms</option>
-          <option value="budget">Budget and financing</option>
-          <option value="privacy">Privacy and data governance</option>
-          <option value="stakeholder">Stakeholder engagement</option>
-          <option value="aiunit">AI unit and mandate</option>
-        </select>
-      </div>
-      <div class="regions">
-        <div class="landmass">
-          <h4>Americas</h4>
-          <div class="node" data-topic="aiunit,implementation" onclick="showDetail('us')"><span class="dot"></span>United States<span class="count">1</span></div>
-          <div class="node" data-topic="budget" onclick="showDetail('canada')"><span class="dot"></span>Canada<span class="count">1</span></div>
+      <div class="landscape-eyebrow">02 · Policy landscape</div>
+      <div class="landscape-head">
+        <div>
+          <h2 class="landscape-title">See the policy landscape—<br>and how it connects.</h2>
+          <p>Select jurisdictions to compare policy instruments, dependencies, reinforcement, and potential conflict.</p>
         </div>
-        <div class="landmass">
-          <h4>Europe</h4>
-          <div class="node home" data-topic="all" onclick="showDetail('portugal')"><span class="dot"></span>Portugal (you)<span class="count">5 assessed</span></div>
-          <div class="node" data-topic="aiunit,implementation" onclick="showDetail('spain')"><span class="dot"></span>Spain<span class="count">1</span></div>
-          <div class="node" data-topic="aiunit,privacy" onclick="showDetail('uk')"><span class="dot"></span>United Kingdom<span class="count">2</span></div>
-          <div class="node" data-topic="implementation,stakeholder" onclick="showDetail('austria')"><span class="dot"></span>Austria<span class="count">2</span></div>
-          <div class="node" data-topic="budget" onclick="showDetail('france')"><span class="dot"></span>France<span class="count">1</span></div>
-          <div class="node" data-topic="budget" onclick="showDetail('malta')"><span class="dot"></span>Malta<span class="count">1</span></div>
-        </div>
-        <div class="landmass">
-          <h4>Middle East &amp; multilateral</h4>
-          <div class="node" data-topic="stakeholder" onclick="showDetail('israel')"><span class="dot"></span>Israel<span class="count">1</span></div>
-          <div class="node" data-topic="privacy,stakeholder" onclick="showDetail('oecd')"><span class="dot"></span>OECD / GPAI<span class="count">3</span></div>
+        <div class="landscape-mode" aria-label="Landscape view selector">
+          <button class="mode-btn active" id="compareModeBtn" onclick="setLandscapeMode('compare')">Compare policies</button>
+          <button class="mode-btn" id="scenarioModeBtn" onclick="setLandscapeMode('scenario')">Scenario lab ✦</button>
         </div>
       </div>
-      <div class="legend">
-        <span><span class="dot" style="background:var(--teal);"></span>Precedent country</span>
-        <span><span class="dot" style="background:var(--navy);"></span>Portugal (assessed)</span>
-        <span>Grouped by region, not exact geography</span>
+
+      <div class="landscape-view active" id="landscapeCompare">
+        <div class="filterbar">
+          <label for="topicFilter" style="color:var(--muted);">Policy topic</label>
+          <select id="topicFilter" onchange="filterMap(this.value)">
+            <option value="all">All topics</option>
+            <option value="implementation">Implementation mechanisms</option>
+            <option value="budget">Budget and financing</option>
+            <option value="privacy">Privacy and data governance</option>
+            <option value="stakeholder">Stakeholder engagement</option>
+            <option value="aiunit">AI unit and mandate</option>
+          </select>
+        </div>
+        <div class="landscape-grid">
+          <div class="policy-chart" aria-label="Abstract map of comparable policy jurisdictions">
+            <div class="policy-blob blob-a"></div><div class="policy-blob blob-b"></div><div class="policy-blob blob-c"></div><div class="policy-blob blob-d"></div><div class="policy-blob blob-e"></div>
+            <button class="map-point mp-canada selected" data-country="canada" data-topic="budget" onclick="selectCountry('canada',this)"><span>Canada</span></button>
+            <button class="map-point mp-us" data-country="us" data-topic="aiunit,implementation" onclick="selectCountry('us',this)"><span>United States</span></button>
+            <button class="map-point mp-portugal" data-country="portugal" data-topic="all" onclick="selectCountry('portugal',this)"><span>Portugal</span></button>
+            <button class="map-point mp-spain" data-country="spain" data-topic="aiunit,implementation" onclick="selectCountry('spain',this)"><span>Spain</span></button>
+            <button class="map-point mp-uk" data-country="uk" data-topic="aiunit,privacy" onclick="selectCountry('uk',this)"><span>United Kingdom</span></button>
+            <button class="map-point mp-austria" data-country="austria" data-topic="implementation,stakeholder" onclick="selectCountry('austria',this)"><span>Austria</span></button>
+            <button class="map-point mp-france" data-country="france" data-topic="budget" onclick="selectCountry('france',this)"><span>France</span></button>
+            <button class="map-point mp-israel" data-country="israel" data-topic="stakeholder" onclick="selectCountry('israel',this)"><span>Israel</span></button>
+            <button class="map-point mp-oecd" data-country="oecd" data-topic="privacy,stakeholder" onclick="selectCountry('oecd',this)"><span>OECD / GPAI</span></button>
+            <div class="chart-legend"><span><i class="selected"></i>Selected</span><span><i></i>Available</span></div>
+          </div>
+          <aside class="compare-panel">
+            <div class="compare-head"><span>Compare policies</span><span id="selectionCount">1/3 selected</span></div>
+            <div id="compareRows">
+              <div class="compare-row" data-country="portugal" onclick="toggleComparison('portugal',this)"><div class="compare-check">+</div><div><strong>Portugal</strong><small>National AI strategy assessment</small></div><em>Home</em></div>
+              <div class="compare-row" data-country="us" onclick="toggleComparison('us',this)"><div class="compare-check">+</div><div><strong>United States</strong><small>Public milestone delivery controls</small></div><em>2025</em></div>
+              <div class="compare-row" data-country="uk" onclick="toggleComparison('uk',this)"><div class="compare-check">+</div><div><strong>United Kingdom</strong><small>Cross-regulator AI principles</small></div><em>2021</em></div>
+              <div class="compare-row active" data-country="canada" onclick="toggleComparison('canada',this)"><div class="compare-check">✓</div><div><strong>Canada</strong><small>Sovereign AI compute strategy</small></div><em>2024</em></div>
+            </div>
+            <div class="detail show" id="mapDetail"><strong>Canada</strong><br><span style="color:var(--muted)">Selected comparator · multi-year public investment tied to procurement milestones.</span></div>
+          </aside>
+        </div>
+        <div class="evidence-banner" onclick="setLandscapeMode('scenario')" role="button" tabindex="0">
+          <div class="evidence-icon">▤</div>
+          <div><div class="kicker">New case evidence</div><strong>3 comparable public-sector cases</strong><div style="font-size:11px;color:var(--muted);margin-top:3px;">OECD.AI source set · scenario-ready</div></div>
+          <div class="arrow">→</div>
+        </div>
       </div>
-      <div class="detail" id="mapDetail"></div>
+
+      <div class="landscape-view" id="landscapeScenario">
+        <div class="scenario-lab">
+          <div class="scenario-head">
+            <div><div class="landscape-eyebrow">Scenario laboratory</div><h2 class="scenario-title">See what happens when conditions change</h2><p>Choose a circumstance, change the policy package, and inspect the consequence.</p></div>
+            <span class="sim-badge">Illustrative simulation</span>
+          </div>
+          <div class="scenario-layout">
+            <div class="scenario-picker">
+              <div class="scenario-label">Select a circumstance</div>
+              <div class="scenario-option active" data-scenario="vendor" onclick="selectScenario('vendor',this)">A vendor changes the model</div>
+              <div class="scenario-option" data-scenario="incident" onclick="selectScenario('incident',this)">A serious incident occurs</div>
+              <div class="scenario-option" data-scenario="capacity" onclick="selectScenario('capacity',this)">Agency capacity falls below plan</div>
+              <div class="scenario-option" data-scenario="deference" onclick="selectScenario('deference',this)">Reviewers defer too often to AI</div>
+            </div>
+            <div class="scenario-main">
+              <div class="scenario-viz">
+                <div class="risk-line line-1"></div><div class="risk-line line-2"></div>
+                <div class="risk-node system"><small>AI system</small><strong id="scenarioSystem">Model v2.4</strong></div>
+                <div class="risk-node exposure"><small>Decision process</small><strong id="scenarioExposure">Moderate exposure</strong></div>
+                <div class="risk-node people"><small>Affected people</small><strong id="scenarioRisk">45% residual risk</strong></div>
+                <div class="agent-pulse"><i></i><i></i><i></i></div>
+              </div>
+              <div class="scenario-copy"><div class="scenario-label">What happens</div><h3 id="scenarioHeading">The vendor changes the model</h3><p id="scenarioDescription">The approved evidence no longer describes the system operating in production. Risk may increase without a visible incident.</p>
+                <div class="policy-toggle-grid">
+                  <button class="policy-toggle on" onclick="togglePolicy(this)"><span>✓</span>Independent audit</button>
+                  <button class="policy-toggle on" onclick="togglePolicy(this)"><span>✓</span>Continuous monitoring</button>
+                  <button class="policy-toggle on" onclick="togglePolicy(this)"><span>✓</span>Meaningful human review</button>
+                  <button class="policy-toggle" onclick="togglePolicy(this)"><span>+</span>Emergency pause authority</button>
+                </div>
+              </div>
+            </div>
+            <aside class="policies-required"><div class="compare-head"><span>Policies required</span><span>4 measures</span></div>
+              <div class="measure"><b>1</b>Material-change notification<span>+</span></div>
+              <div class="measure"><b>2</b>Automatic re-evaluation<span>+</span></div>
+              <div class="measure"><b>3</b>Version-specific audit trail<span>+</span></div>
+              <div class="measure"><b>4</b>Temporary restriction authority<span>+</span></div>
+              <div class="exposure-meter"><div class="meter-copy"><span>Residual exposure</span><strong id="exposureLabel">Moderate</strong></div><div class="meter"><div class="meter-fill" id="meterFill"></div></div></div>
+            </aside>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="panel-2">
@@ -321,6 +480,11 @@
   </div>
 </div>
 
+<button class="floating-agent" onclick="summonAster()" aria-label="Ask Aster what to explore next">
+  <span class="floating-orb"></span>
+  <span><strong>Aster <span class="spark">✦</span></strong><small id="asterState">Scanning 12 policy sources</small></span>
+</button>
+
 <script>
 /*
  * Data model, part 1: documents.
@@ -371,6 +535,26 @@ const countryDocs = {
   israel: {label:'Israel', docs:['israel_forum2025']},
   oecd: {label:'OECD / GPAI', docs:['oecd_dataprivacy2024','oecd_datamapping2025','oecd_steeringfuture']},
   portugal: {label:'Portugal (you)', docs:[]}
+};
+
+const selectedComparisons = new Set(['canada']);
+const scenarioData = {
+  vendor: {
+    heading:'The vendor changes the model', system:'Model v2.4', exposure:'Moderate exposure', risk:'45% residual risk', label:'Moderate', width:45,
+    description:'The approved evidence no longer describes the system operating in production. Risk may increase without a visible incident.'
+  },
+  incident: {
+    heading:'A serious incident occurs', system:'Incident 07‑B', exposure:'High exposure', risk:'72% residual risk', label:'High', width:72,
+    description:'A harmful outcome triggers immediate reporting duties, cross-agency investigation, and a review of whether deployment can safely continue.'
+  },
+  capacity: {
+    heading:'Agency capacity falls below plan', system:'Team at 61%', exposure:'Delivery pressure', risk:'58% residual risk', label:'Elevated', width:58,
+    description:'Oversight queues grow while specialist review capacity contracts. Lower-priority reviews begin to displace high-impact assurance work.'
+  },
+  deference: {
+    heading:'Reviewers defer too often to AI', system:'Override rate 3%', exposure:'Human factors risk', risk:'66% residual risk', label:'High', width:66,
+    description:'Human review exists on paper but no longer functions as an independent safeguard. Automation bias concentrates errors across repeated decisions.'
+  }
 };
 
 /*
@@ -663,7 +847,7 @@ function appendMsg(role, text){
   m.className = 'msg ' + role;
   m.innerHTML = role === 'user'
     ? '<div class="bubble">'+text+'</div>'
-    : '<div class="who">Copilot</div><div class="bubble">'+text+'</div>';
+    : '<div class="who">Aster · Policy agent</div><div class="bubble">'+text+'</div>';
   log.appendChild(m);
   log.scrollTop = log.scrollHeight;
   return m;
@@ -832,6 +1016,71 @@ function toggleMore(){
   document.getElementById('moreCountries').classList.toggle('open');
 }
 
+function setLandscapeMode(mode){
+  const compare = mode === 'compare';
+  document.getElementById('landscapeCompare').classList.toggle('active', compare);
+  document.getElementById('landscapeScenario').classList.toggle('active', !compare);
+  document.getElementById('compareModeBtn').classList.toggle('active', compare);
+  document.getElementById('scenarioModeBtn').classList.toggle('active', !compare);
+  const state = document.getElementById('asterState');
+  if(state) state.textContent = compare ? 'Connecting policy precedents' : 'Simulating policy conditions';
+}
+
+function selectCountry(key, point){
+  document.querySelectorAll('.map-point').forEach(p => p.classList.remove('selected'));
+  if(point) point.classList.add('selected');
+  showDetail(key);
+  const row = document.querySelector('.compare-row[data-country="'+key+'"]');
+  if(row && !selectedComparisons.has(key)) toggleComparison(key, row);
+}
+
+function toggleComparison(key, row){
+  if(selectedComparisons.has(key)){
+    selectedComparisons.delete(key);
+    row.classList.remove('active');
+    row.querySelector('.compare-check').textContent = '+';
+  } else if(selectedComparisons.size < 3){
+    selectedComparisons.add(key);
+    row.classList.add('active');
+    row.querySelector('.compare-check').textContent = '✓';
+  }
+  document.getElementById('selectionCount').textContent = selectedComparisons.size + '/3 selected';
+  showDetail(key);
+}
+
+function selectScenario(key, option){
+  const data = scenarioData[key];
+  if(!data) return;
+  document.querySelectorAll('.scenario-option').forEach(el => el.classList.remove('active'));
+  option.classList.add('active');
+  document.getElementById('scenarioHeading').textContent = data.heading;
+  document.getElementById('scenarioSystem').textContent = data.system;
+  document.getElementById('scenarioExposure').textContent = data.exposure;
+  document.getElementById('scenarioRisk').textContent = data.risk;
+  document.getElementById('scenarioDescription').textContent = data.description;
+  document.getElementById('exposureLabel').textContent = data.label;
+  document.getElementById('meterFill').style.width = data.width + '%';
+  document.getElementById('asterState').textContent = 'Recalculating: ' + data.label.toLowerCase() + ' exposure';
+}
+
+function togglePolicy(button){
+  button.classList.toggle('on');
+  button.querySelector('span').textContent = button.classList.contains('on') ? '✓' : '+';
+  const enabled = document.querySelectorAll('.policy-toggle.on').length;
+  const base = document.querySelector('.scenario-option.active');
+  const data = scenarioData[base ? base.dataset.scenario : 'vendor'];
+  const adjusted = Math.max(12, Math.min(88, data.width + (3 - enabled) * 9));
+  document.getElementById('meterFill').style.width = adjusted + '%';
+  document.getElementById('scenarioRisk').textContent = adjusted + '% residual risk';
+  document.getElementById('exposureLabel').textContent = adjusted < 35 ? 'Low' : adjusted < 60 ? 'Moderate' : 'High';
+}
+
+function summonAster(){
+  appendMsg('agent', '<strong>I’m tracking the active policy view.</strong><p>Try comparing Canada with Portugal, or open the Scenario lab to stress-test a policy package.</p>');
+  const chat = document.getElementById('chatlog');
+  chat.scrollTop = chat.scrollHeight;
+}
+
 function showDetail(key){
   const c = countryDocs[key];
   const el = document.getElementById('mapDetail');
@@ -849,7 +1098,7 @@ function showDetail(key){
 }
 
 function filterMap(topic){
-  document.querySelectorAll('.node').forEach(n => {
+  document.querySelectorAll('.map-point').forEach(n => {
     const topics = (n.dataset.topic || '').split(',');
     if(topic === 'all' || topics.includes('all') || topics.includes(topic)){
       n.classList.remove('dim');
@@ -937,7 +1186,7 @@ document.querySelectorAll('.stage').forEach(s => {
 function resetSession(){
   // Chat
   const log = document.getElementById('chatlog');
-  log.innerHTML = '<div class="msg agent"><div class="who">Copilot</div><div class="bubble">Hi, I\'m set up for Portugal, governance and institutions. What do you want to look at first?</div></div>';
+  log.innerHTML = '<div class="msg agent"><div class="who">Aster · Policy agent</div><div class="bubble">Hi, I\'m set up for Portugal, governance and institutions. What do you want to look at first?</div></div>';
   // State
   stepIndex = 0;
   // Canvas

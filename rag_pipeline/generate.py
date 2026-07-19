@@ -34,7 +34,9 @@ MODEL = "z-ai/glm-5.2"
 
 client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("NVIDIA_API_KEY"),
+    # A non-secret placeholder keeps local demo mode importable. The API
+    # server never calls this client unless a real NVIDIA_API_KEY is present.
+    api_key=os.getenv("NVIDIA_API_KEY") or "not-configured",
 )
 
 SYSTEM_PROMPT = """You are a policy analysis assistant helping a government research manager \

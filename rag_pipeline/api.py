@@ -44,7 +44,78 @@ app.add_middleware(
 )
 
 
+def _has_live_model_key() -> bool:
+    key = (os.getenv("NVIDIA_API_KEY") or "").strip()
+    return bool(key and key != "nvapi-your-key-here")
+
+
+def _demo_recommendation(query: str) -> Recommendation:
+    """Keep the local review UI useful when no external model key is configured."""
+    lowered = query.lower()
+    if "compute" in lowered or "subsid" in lowered:
+        priority = "Compute access for startups and SMEs"
+        action = (
+            "Create a staged compute-access programme for startups and SMEs, beginning with "
+            "shared public capacity and milestone-based credits before committing to larger subsidies."
+        )
+        timeframe = "now"
+    elif "fund" in lowered or "r&d" in lowered or "research" in lowered:
+        priority = "Multi-year AI research funding"
+        action = (
+            "Publish a multi-year AI research funding envelope with annual delivery milestones, "
+            "transparent eligibility rules, and a review point before each new funding phase."
+        )
+        timeframe = "next"
+    elif "language" in lowered or "dataset" in lowered:
+        priority = "Portuguese-language AI resources"
+        action = (
+            "Fund a governed Portuguese-language data commons with documented provenance, "
+            "clear reuse permissions, and recurring quality and representation audits."
+        )
+        timeframe = "next"
+    elif "centre" in lowered or "center" in lowered or "network" in lowered:
+        priority = "AI research centres and networks"
+        action = (
+            "Connect existing research centres through a national challenge programme that shares "
+            "compute, evaluation infrastructure, and public-sector deployment pathways."
+        )
+        timeframe = "later"
+    else:
+        priority = query.strip().capitalize() or "AI policy priority"
+        action = (
+            "Run a six-month evidence and delivery sprint for this priority, naming a lead owner, "
+            "publishing milestones, and reviewing results before expanding the programme."
+        )
+        timeframe = "now"
+
+    disclaimer = (
+        "Local demo mode: the API server is working, but NVIDIA_API_KEY is not configured. "
+        "This illustrative response was created locally and is not a live model output."
+    )
+    return Recommendation.model_validate({
+        "pillar": "Research, investment, and commercialisation",
+        "priority_title": priority,
+        "country": "Portugal",
+        "status": "gap",
+        "timeframe": timeframe,
+        "recommendation": action,
+        "related_claims": [
+            "A named delivery owner and public milestones make the recommendation testable.",
+            "A staged rollout creates a review point before larger public commitments are made.",
+        ],
+        "evidence": [{
+            "source_title": "Aster local review mode",
+            "country": "OECD / Portugal",
+            "year": 2026,
+            "url": None,
+            "page": 1,
+            "excerpt": disclaimer,
+        }],
+    })
+
+
 @app.get("/")
+@app.get("/ai_policy_copilot_mockup.html")
 def index():
     if not MOCKUP_PATH.exists():
         raise HTTPException(status_code=404, detail="Mockup HTML not found")
@@ -53,7 +124,13 @@ def index():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "mode": "live" if _has_live_model_key() else "demo",
+        "message": "NVIDIA_API_KEY is not configured; returning local illustrative responses."
+        if not _has_live_model_key()
+        else "Live retrieval and generation are enabled.",
+    }
 
 
 class RecommendRequest(BaseModel):
@@ -65,6 +142,8 @@ class RecommendRequest(BaseModel):
 async def recommend(req: RecommendRequest):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="query must not be empty")
+    if not _has_live_model_key():
+        return _demo_recommendation(req.query)
     chunks = retrieve(req.query, k=req.k)
     if not chunks:
         raise HTTPException(
@@ -82,7 +161,7 @@ async def recommend(req: RecommendRequest):
 
 _draft_client = OpenAI(
     base_url="https://integrate.api.nvidia.com/v1",
-    api_key=os.getenv("NVIDIA_API_KEY"),
+    api_key=os.getenv("NVIDIA_API_KEY") or "not-configured",
 )
 
 DRAFT_SYSTEM = (
@@ -117,6 +196,23 @@ async def draft_section(req: DraftRequest):
         f"Evidence excerpts:\n{excerpts_block}\n\n"
         f"Draft the section now.{tone_note}"
     )
+
+    if not _has_live_model_key():
+        evidence_note = (
+            " The available evidence indicates that delivery should be staged, publicly tracked, "
+            "and reviewed before additional commitments are made."
+            if req.evidence_excerpts
+            else ""
+        )
+        return {
+            "draft": (
+                f"Portugal should implement {req.section_title.lower()} through a named delivery owner, "
+                f"published milestones, and a recurring review cycle. {req.recommendation.strip()}"
+                f"{evidence_note}\n\n"
+                "This locally generated review draft is illustrative. Configure NVIDIA_API_KEY "
+                "to enable evidence-grounded model generation."
+            )
+        }
 
     try:
         completion = _draft_client.chat.completions.create(

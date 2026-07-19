@@ -1,5 +1,6 @@
 .env
 rag_pipeline/.env
+.venv/
 __pycache__/
 *.pyc
 .DS_Store
