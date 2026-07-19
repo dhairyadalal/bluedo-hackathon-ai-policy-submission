@@ -37,6 +37,14 @@
   .canvas-hint{font-size:11px;color:var(--teal);font-weight:600;margin-top:10px;padding-top:8px;border-top:1px solid rgba(0,128,128,.15);}
   .resetbtn{background:none;border:1px solid var(--line);color:var(--muted);font-size:11px;border-radius:6px;padding:4px 10px;cursor:pointer;margin:0 18px 10px;align-self:flex-start;}
   .resetbtn:hover{border-color:var(--teal);color:var(--teal);}
+  .coverage{margin:0 18px 12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px;}
+  .coverage-head{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--teal-light);cursor:pointer;user-select:none;}
+  .coverage-head span{font-weight:600;color:var(--teal);font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  .coverage-body{display:none;padding:8px 10px;background:#fff;}
+  .coverage-body.open{display:block;}
+  .coverage-file{margin-bottom:6px;color:var(--ink);}
+  .coverage-file:last-child{margin-bottom:0;}
+  .coverage-pill{display:inline-block;background:var(--teal-light);color:var(--teal);border-radius:4px;padding:1px 6px;font-size:10px;margin-top:2px;margin-right:3px;}
   .msg.agent .bubble ol,.msg.agent .bubble ul{margin:6px 0 0 16px;padding:0;}
   .msg.agent .bubble li{margin:3px 0;font-size:13px;}
   .msg.agent .bubble p{margin:4px 0;}
@@ -267,6 +275,13 @@
         <div class="bubble">Hi, I'm set up for Portugal, governance and institutions. What do you want to look at first?</div>
       </div>
     </div>
+    <div class="coverage" id="coverage" style="display:none;">
+      <div class="coverage-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span>Pipeline data coverage</span>
+        <span style="color:var(--muted);font-weight:400;" id="coverageSummary"></span>
+      </div>
+      <div class="coverage-body" id="coverageBody"></div>
+    </div>
     <div class="chips" id="chips"></div>
     <button class="resetbtn" onclick="resetSession()">↺ Reset to Portugal case</button>
     <div class="inputrow">
@@ -281,6 +296,28 @@
     <div class="panel visible" id="panel-0">
       <h2 class="panel-title">Portugal at a glance — governance and institutions</h2>
       <p class="panel-sub">Based on your survey answers, compared against one closely relevant action plan.</p>
+
+      <div class="card" style="padding-bottom:10px;">
+        <strong style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px;">Policy assessment</strong>
+        <div style="margin-top:10px;">
+          <div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);">
+            <span style="font-size:13px;font-weight:600;min-width:170px;">Risk definition</span>
+            <span class="tag planned" style="white-space:nowrap;">Partial</span>
+            <span style="font-size:12.5px;color:var(--muted);line-height:1.4;">AI-related harms are referenced in consultation documents but no formal risk taxonomy or threshold definitions have been published.</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);">
+            <span style="font-size:13px;font-weight:600;min-width:170px;">Coordination</span>
+            <span class="tag planned" style="white-space:nowrap;">Partial</span>
+            <span style="font-size:12.5px;color:var(--muted);line-height:1.4;">A dedicated AI unit is being established, but formal cross-ministry coordination and named delivery owners are not yet in place.</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:10px;padding:8px 0;">
+            <span style="font-size:13px;font-weight:600;min-width:170px;">Public communication</span>
+            <span class="tag no" style="white-space:nowrap;">Missing</span>
+            <span style="font-size:12.5px;color:var(--muted);line-height:1.4;">No mandatory public disclosure or accountability framework for AI decisions has been identified in reviewed sources.</span>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="snapshot-hero">
           <div class="stat"><div class="n">3</div><div class="l">gaps (no)</div></div>
@@ -1183,6 +1220,28 @@ document.querySelectorAll('.stage').forEach(s => {
   });
 });
 
+async function loadCoverage(){
+  try {
+    const resp = await fetch(API_BASE + '/api/status');
+    if(!resp.ok) return;
+    const data = await resp.json();
+    const panel = document.getElementById('coverage');
+    const summary = document.getElementById('coverageSummary');
+    const body = document.getElementById('coverageBody');
+    summary.textContent = data.total_chunks + ' chunks · ' + data.files.length + ' file' + (data.files.length !== 1 ? 's' : '');
+    body.innerHTML = data.files.map(f =>
+      '<div class="coverage-file">'
+      + '<strong>' + f.source_file + '</strong><br>'
+      + '<span style="color:var(--muted);">' + f.country + ' · ' + f.pages + ' page' + (f.pages !== 1 ? 's' : '') + '</span><br>'
+      + f.pillars.map(p => '<span class="coverage-pill">' + p + '</span>').join('')
+      + '</div>'
+    ).join('');
+    panel.style.display = '';
+  } catch(e) {
+    // API not reachable — hide silently
+  }
+}
+
 function resetSession(){
   // Chat
   const log = document.getElementById('chatlog');
@@ -1207,6 +1266,7 @@ renderRoadmap();
 renderSnapshotActions();
 initDraftPanel();
 renderChips();
+loadCoverage();
 </script>
 </body>
 </html>

@@ -133,6 +133,36 @@ def health():
     }
 
 
+@app.get("/api/status")
+def status():
+    """Return which PDFs and pillars are currently ingested in ChromaDB."""
+    from retrieve import get_collection
+    col = get_collection()
+    results = col.get(include=["metadatas"])
+    metadatas = results.get("metadatas", [])
+
+    files: dict = {}
+    for m in metadatas:
+        src = m.get("source_file", "unknown")
+        if src not in files:
+            files[src] = {
+                "source_file": src,
+                "country": m.get("country", "unknown"),
+                "pillars": set(),
+                "pages": 0,
+            }
+        files[src]["pillars"].add(m.get("pillar", "unknown"))
+        files[src]["pages"] += 1
+
+    return {
+        "total_chunks": len(metadatas),
+        "files": [
+            {**v, "pillars": sorted(v["pillars"])}
+            for v in files.values()
+        ],
+    }
+
+
 class RecommendRequest(BaseModel):
     query: str
     k: int = 4
